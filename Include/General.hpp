@@ -222,3 +222,10 @@ namespace Dotnet {
         _In_ ICorRuntimeHost* IRuntime
     ) -> HRESULT;
 }
+
+namespace Fix {
+    auto Tls( PVOID Base, PVOID DataDir ) -> VOID;
+    auto Exp( PVOID Base, PVOID DataDir ) -> VOID;
+    auto Imp( PVOID Base, PVOID DataDir ) -> BOOL;
+    auto Rel( PVOID Base, UPTR  Delta, PVOID DataDir ) -> VOID;
+}

@@ -68,6 +68,8 @@ EXTERN_C {
     DFR(ADVAPI32, RegOpenKeyExA);
     DFR(ADVAPI32, RegSetValueExA);
     
+    DFR(NTDLL, RtlAddFunctionTable)
+    DFR(NTDLL, LdrGetProcedureAddress)
     DFR(NTDLL, RtlAddVectoredExceptionHandler)
     DFR(NTDLL, RtlRemoveVectoredExceptionHandler)
     DFR(NTDLL, RtlEnterCriticalSection)
@@ -165,6 +167,8 @@ EXTERN_C {
 #define vsnprintf                  MSVCRT$vsnprintf
 #define NetUserAdd                 NETAPI32$NetUserAdd
 
+#define RtlAddFunctionTable               NTDLL$RtlAddFunctionTable
+#define LdrGetProcedureAddress            NTDLL$LdrGetProcedureAddress
 #define RtlDeleteCriticalSection          NTDLL$RtlDeleteCriticalSection
 #define RtlRemoveVectoredExceptionHandler NTDLL$RtlRemoveVectoredExceptionHandler
 #define RtlAddVectoredExceptionHandler    NTDLL$RtlAddVectoredExceptionHandler
