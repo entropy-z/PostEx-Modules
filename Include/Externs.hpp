@@ -7,13 +7,19 @@
 #include <lmaccess.h>
 #include <lmerr.h>
 #include <wsmandisp.h>
-// #include <comdef.h>
+#include <CLR.hpp>
+#include <guiddef.h>
 #include <netfw.h>
+#include <ktmw32.h>
+#include <aclapi.h>
 #include <combaseapi.h>
 #include <Native.hpp>
+#include <ntstatus.h>
 
 EXTERN_C DECLSPEC_IMPORT INT WINAPI DNSAPI$DnsGetCacheDataTable(PVOID Data);
 EXTERN_C {
+    DFR(KERNEL32, ResumeThread)
+    DFR(KERNEL32, OpenThread)
     DFR(KERNEL32, VirtualAlloc)
     DFR(KERNEL32, VirtualAllocEx)
     DFR(KERNEL32, LoadLibraryW)
@@ -61,14 +67,26 @@ EXTERN_C {
     DFR(ADVAPI32, CloseServiceHandle);
     DFR(ADVAPI32, RegOpenKeyExA);
     DFR(ADVAPI32, RegSetValueExA);
-
+    
+    DFR(NTDLL, RtlAddVectoredExceptionHandler)
+    DFR(NTDLL, RtlRemoveVectoredExceptionHandler)
+    DFR(NTDLL, RtlEnterCriticalSection)
+    DFR(NTDLL, RtlDeleteCriticalSection)
+    DFR(NTDLL, RtlEnterCriticalSection)
+    DFR(NTDLL, RtlInitializeCriticalSection)
+    DFR(NTDLL, RtlLeaveCriticalSection)
+    DFR(NTDLL, NtContinue)
+    DFR(NTDLL, NtGetContextThread)
+    DFR(NTDLL, NtSetContextThread)
     DFR(NTDLL, NtOpenSection)
     DFR(NTDLL, NtCreateSection)
     DFR(NTDLL, NtMapViewOfSection)
     DFR(NTDLL, NtUnmapViewOfSection)
+    DFR(NTDLL, NtQuerySystemInformation)
     DFR(NTDLL, NtQueryInformationFile)
     DFR(NTDLL, NtSetInformationProcess)
     DFR(NTDLL, NtQueryInformationProcess)
+    DFR(NTDLL, RtlCreateTimer)
 
     DFR(OLE32, CoCreateInstance)
     DFR(OLE32, CoInitializeEx)
@@ -78,6 +96,12 @@ EXTERN_C {
     DFR(OLE32, CoSetProxyBlanket)
     DFR(OLE32, VariantInit)
     DFR(OLE32, VariantClear)
+    DFR(OLE32, SafeArrayCreateVector)
+    DFR(OLE32, SafeArrayDestroy)
+    DFR(OLE32, SafeArrayPutElement)
+    DFR(OLE32, SafeArrayAccessData)
+    DFR(OLE32, SafeArrayGetLBound)
+    DFR(OLE32, SafeArrayGetUBound)
     DFR(OLE32, SysFreeString)
     DFR(OLE32, SysAllocString)
 
@@ -90,6 +114,8 @@ EXTERN_C {
     DFR(GDI32, CreateCompatibleDC)
     DFR(GDI32, GetObjectW)
     DFR(GDI32, GetCurrentObject)
+
+    DFR(MSCOREE, CLRCreateInstance)
 }
 
 #define GetNetworkParams           IPHLPAPI$GetNetworkParams
@@ -99,6 +125,8 @@ EXTERN_C {
 
 #define inet_ntoa                  WS2_32$inet_ntoa
 
+#define ResumeThread               KERNEL32$ResumeThread
+#define OpenThread                 KERNEL32$OpenThread
 #define VirtualProtect             KERNEL32$VirtualProtect
 #define VirtualProtectEx           KERNEL32$VirtualProtectEx
 #define LoadLibraryW               KERNEL32$LoadLibraryW
@@ -137,13 +165,24 @@ EXTERN_C {
 #define vsnprintf                  MSVCRT$vsnprintf
 #define NetUserAdd                 NETAPI32$NetUserAdd
 
-#define NtOpenSection              NTDLL$NtOpenSection
-#define NtCreateSection            NTDLL$NtCreateSection
-#define NtMapViewOfSection         NTDLL$NtMapViewOfSection
-#define NtUnmapViewOfSection       NTDLL$NtUnmapViewOfSection
-#define NtQueryInformationFile     NTDLL$NtQueryInformationFile
-#define NtQueryInformationProcess  NTDLL$NtQueryInformationProcess
-#define NtSetInformationProcess    NTDLL$NtSetInformationProcess
+#define RtlDeleteCriticalSection          NTDLL$RtlDeleteCriticalSection
+#define RtlRemoveVectoredExceptionHandler NTDLL$RtlRemoveVectoredExceptionHandler
+#define RtlAddVectoredExceptionHandler    NTDLL$RtlAddVectoredExceptionHandler
+#define RtlInitializeCriticalSection      NTDLL$RtlInitializeCriticalSection
+#define RtlEnterCriticalSection           NTDLL$RtlEnterCriticalSection
+#define RtlLeaveCriticalSection           NTDLL$RtlLeaveCriticalSection
+#define NtContinue                        NTDLL$NtContinue
+#define NtGetContextThread                NTDLL$NtGetContextThread
+#define NtSetContextThread                NTDLL$NtSetContextThread
+#define NtOpenSection                     NTDLL$NtOpenSection
+#define NtCreateSection                   NTDLL$NtCreateSection
+#define NtMapViewOfSection                NTDLL$NtMapViewOfSection
+#define NtUnmapViewOfSection              NTDLL$NtUnmapViewOfSection
+#define NtQueryInformationFile            NTDLL$NtQueryInformationFile
+#define NtQuerySystemInformation          NTDLL$NtQuerySystemInformation
+#define NtQueryInformationProcess         NTDLL$NtQueryInformationProcess
+#define NtSetInformationProcess           NTDLL$NtSetInformationProcess
+#define RtlCreateTimer                    NTDLL$RtlCreateTimer
 
 #define GetDC                      USER32$GetDC
 #define GetSystemMetrics           USER32$GetSystemMetrics
@@ -162,5 +201,13 @@ EXTERN_C {
 #define CoSetProxyBlanket          OLE32$CoSetProxyBlanket
 #define VariantInit                OLE32$VariantInit
 #define VariantClear               OLE32$VariantClear
+#define SafeArrayCreateVector      OLE32$SafeArrayCreateVector
+#define SafeArrayDestroy           OLE32$SafeArrayDestroy
+#define SafeArrayPutElement        OLE32$SafeArrayPutElement
+#define SafeArrayAccessData        OLE32$SafeArrayAccessData
+#define SafeArrayGetLBound         OLE32$SafeArrayGetLBound
+#define SafeArrayGetUBound         OLE32$SafeArrayGetUBound
 #define SysFreeString              OLE32$SysFreeString
 #define SysAllocString             OLE32$SysAllocString
+
+#define CLRCreateInstance          MSCOREE$CLRCreateInstance

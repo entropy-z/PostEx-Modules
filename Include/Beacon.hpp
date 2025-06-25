@@ -87,7 +87,6 @@ EXTERN_C {
     DECLSPEC_IMPORT DWORD  BeaconResumeThread(HANDLE threadHandle);
     DECLSPEC_IMPORT HANDLE BeaconOpenProcess(DWORD desiredAccess, BOOL inheritHandle, DWORD processId);
     DECLSPEC_IMPORT HANDLE BeaconOpenThread(DWORD desiredAccess, BOOL inheritHandle, DWORD threadId);
-    DECLSPEC_IMPORT BOOL   BeaconCloseHandle(HANDLE object);
     DECLSPEC_IMPORT BOOL   BeaconUnmapViewOfFile(LPCVOID baseAddress);
     DECLSPEC_IMPORT SIZE_T BeaconVirtualQuery(LPCVOID address, PMEMORY_BASIC_INFORMATION buffer, SIZE_T length);
     DECLSPEC_IMPORT BOOL   BeaconDuplicateHandle(HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, LPHANDLE lpTargetHandle, DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwOptions);

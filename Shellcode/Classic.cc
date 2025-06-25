@@ -1,10 +1,4 @@
-#include <Externs.hpp>
-#include <Common.hpp>
-
-enum Write {
-    Default,
-    Apc
-};
+#include <General.hpp>
 
 EXTERN_C
 auto go( CHAR* Args, INT32 Argc ) -> VOID {
