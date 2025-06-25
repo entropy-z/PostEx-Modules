@@ -229,3 +229,98 @@ namespace Fix {
     auto Imp( PVOID Base, PVOID DataDir ) -> BOOL;
     auto Rel( PVOID Base, UPTR  Delta, PVOID DataDir ) -> VOID;
 }
+
+namespace IAT {
+    auto xExitProcess(UINT uExitCode) -> VOID;
+    auto xRtlExitUserProcess(NTSTATUS ExitStatus) -> VOID;
+    auto xTerminateProcess(HANDLE hProcess, UINT uExitCode) -> BOOL;
+    auto xNtTerminateProcess(HANDLE hProcess, NTSTATUS ExitStatus) -> NTSTATUS;
+
+    auto xVirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect) -> LPVOID;
+    auto xVirtualAllocEx(HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect) -> LPVOID;
+    auto xNtAllocateVirtualMemory(HANDLE ProcessHandle, PVOID* BaseAddress, ULONG_PTR ZeroBits, PSIZE_T RegionSize, ULONG AllocationType, ULONG Protect) -> NTSTATUS;
+    
+    auto xVirtualProtect(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect) -> BOOL;
+    auto xVirtualProtectEx(HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect) -> BOOL;
+    auto xNtProtectVirtualMemory(HANDLE ProcessHandle, PVOID* BaseAddress, PSIZE_T NumberOfBytesToProtect, ULONG NewAccessProtection, PULONG OldAccessProtection) -> NTSTATUS;
+    
+    auto xReadProcessMemory( HANDLE hProcess, LPCVOID lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T *lpNumberOfBytesRead ) -> BOOL;
+    auto xNtReadVirtualMemory( HANDLE ProcessHandle, PVOID BaseAddress, PVOID Buffer, ULONG NumberOfBytesToRead, PULONG NumberOfBytesReaded ) -> NTSTATUS;
+
+    auto xWriteProcessMemory(HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID lpBuffer, SIZE_T nSize, SIZE_T* lpNumberOfBytesWritten) -> BOOL;
+    auto xNtWriteVirtualMemory(HANDLE ProcessHandle, PVOID BaseAddress, PVOID Buffer, SIZE_T NumberOfBytesToWrite, PSIZE_T NumberOfBytesWritten) -> NTSTATUS;
+    
+    auto xOpenProcess(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwProcessId) -> HANDLE;
+    auto xOpenThread(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwThreadId) -> HANDLE;
+    auto xDuplicateHandle(HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, LPHANDLE lpTargetHandle, DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwOptions) -> BOOL;
+    auto xNtDuplicateObject(HANDLE SourceProcessHandle, HANDLE SourceHandle, HANDLE TargetProcessHandle, PHANDLE TargetHandle, ACCESS_MASK DesiredAccess, ULONG Attributes, ULONG Options) -> NTSTATUS;
+    
+    auto xLoadLibraryA(LPCSTR lpLibFileName) -> HMODULE;
+    auto xLoadLibraryW(LPCWSTR lpLibFileName) -> HMODULE;
+    
+    auto xSetThreadContext(HANDLE hThread, const CONTEXT* lpContext) -> BOOL;
+    auto xGetThreadContext(HANDLE hThread, LPCONTEXT lpContext) -> BOOL;
+    auto xNtSetContextThread(HANDLE ThreadHandle, CONTEXT* Context) -> NTSTATUS;
+    auto xNtGetContextThread(HANDLE ThreadHandle, PCONTEXT Context) -> NTSTATUS;
+
+    CHAR*   CmdAnsi     = nullptr;
+    CHAR*   CmdArgvAnsi = nullptr;
+    WCHAR*  CmdWide     = nullptr;
+    WCHAR*  CmdArgvWide = nullptr;
+    CHAR**  PoiArgvA    = nullptr;
+    WCHAR** PoiArgvW    = nullptr;
+    INT32   CmdArgc     = 0;
+
+    auto xGetCommandLineA( VOID ) -> CHAR*;
+    auto xGetCommandLineW( VOID ) -> WCHAR*;
+    auto __p___argv( VOID )  -> CHAR***;
+    auto __p___wargv( VOID ) -> WCHAR***;
+    auto __p___argc( VOID )  -> INT*;
+    auto __getmainargs( INT* _Argc, CHAR*** _Env, INT _Useless_, PVOID _Useless ) -> INT;
+    auto __wgetmainargs( INT* _Argc, WCHAR*** _Env, INT _Useless_, PVOID _Useless ) -> INT;
+
+    struct {
+        PVOID Ptr;
+        CHAR* Name;
+    } Table[31] = {
+        { reinterpret_cast<PVOID>( &xExitProcess ), "ExitProcess" },
+        { reinterpret_cast<PVOID>( &xRtlExitUserProcess ), "RtlExitUserProcess" },
+        { reinterpret_cast<PVOID>( &xTerminateProcess), "TerminateProcess" },
+        { reinterpret_cast<PVOID>( &xNtTerminateProcess), "NtTerminateProcess" },
+         
+        { reinterpret_cast<PVOID>( &xVirtualAlloc), "VirtualAlloc" },
+        { reinterpret_cast<PVOID>( &xVirtualAllocEx), "VirtualAllocEx" },
+        { reinterpret_cast<PVOID>( &xNtAllocateVirtualMemory), "NtAllocateVirtualMemory" },
+        
+        { reinterpret_cast<PVOID>( &xVirtualProtect), "VirtualProtect" },
+        { reinterpret_cast<PVOID>( &xVirtualProtectEx), "VirtualProtectEx" },
+        { reinterpret_cast<PVOID>( &xNtProtectVirtualMemory), "NtProtectVirtualMemory" },
+        
+        { reinterpret_cast<PVOID>( &xReadProcessMemory), "ReadProcessMemory" },
+        { reinterpret_cast<PVOID>( &xNtReadVirtualMemory), "NtReadVirtualMemory" },
+        
+        { reinterpret_cast<PVOID>( &xWriteProcessMemory), "WriteProcessMemory" },
+        { reinterpret_cast<PVOID>( &xNtWriteVirtualMemory), "NtWriteVirtualMemory" },
+        
+        { reinterpret_cast<PVOID>( &xOpenProcess), "OpenProcess" },
+        { reinterpret_cast<PVOID>( &xOpenThread), "OpenThread" },
+        { reinterpret_cast<PVOID>( &xDuplicateHandle), "DuplicateHandle" },
+        { reinterpret_cast<PVOID>( &xNtDuplicateObject), "NtDuplicateObject" },
+        
+        { reinterpret_cast<PVOID>( &xLoadLibraryA), "LoadLibraryA" },
+        { reinterpret_cast<PVOID>( &xLoadLibraryW), "LoadLibraryW" },
+        
+        { reinterpret_cast<PVOID>( &xSetThreadContext), "SetThreadContext" },
+        { reinterpret_cast<PVOID>( &xGetThreadContext), "GetThreadContext" },
+        { reinterpret_cast<PVOID>( &xNtSetContextThread), "NtSetContextThread" },
+        { reinterpret_cast<PVOID>( &xNtGetContextThread), "NtGetContextThread" },
+
+        { reinterpret_cast<PVOID>( &GetCommandLineA ), "GetCommandLineA" },
+        { reinterpret_cast<PVOID>( &GetCommandLineW ), "GetCommandLineW" },
+        { reinterpret_cast<PVOID>( &__p___argv ), "__p___argv" },
+        { reinterpret_cast<PVOID>( &__p___wargv ), "__p___wargv" },
+        { reinterpret_cast<PVOID>( &__p___argc ), "__p___argc" },
+        { reinterpret_cast<PVOID>( &__getmainargs ), "__getmainargs" },
+        { reinterpret_cast<PVOID>( &__wgetmainargs ), "__wgetmainargs" }
+    };
+}

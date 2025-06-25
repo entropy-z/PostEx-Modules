@@ -18,6 +18,11 @@
 
 EXTERN_C DECLSPEC_IMPORT INT WINAPI DNSAPI$DnsGetCacheDataTable(PVOID Data);
 EXTERN_C {
+    DFR(KERNEL32, ExitThread)
+    DFR(KERNEL32, ReadProcessMemory)
+    DFR(KERNEL32, DuplicateHandle)
+    DFR(KERNEL32, GetThreadContext)
+    DFR(KERNEL32, SetThreadContext)
     DFR(KERNEL32, ResumeThread)
     DFR(KERNEL32, OpenThread)
     DFR(KERNEL32, VirtualAlloc)
@@ -43,6 +48,7 @@ EXTERN_C {
     DFR(KERNEL32, QueryFullProcessImageNameA)
     DFR(KERNEL32, CloseHandle)
     DFR(KERNEL32, SetFileInformationByHandle)
+    DFR(KERNEL32, TerminateProcess)
     
     DFR(IPHLPAPI, GetNetworkParams)
     DFR(IPHLPAPI, GetAdaptersInfo)
@@ -68,6 +74,13 @@ EXTERN_C {
     DFR(ADVAPI32, RegOpenKeyExA);
     DFR(ADVAPI32, RegSetValueExA);
     
+    DFR(NTDLL, RtlExitUserThread)
+    DFR(NTDLL, NtDuplicateObject)
+    DFR(NTDLL, NtWriteVirtualMemory)
+    DFR(NTDLL, NtAllocateVirtualMemory)
+    DFR(NTDLL, NtReadVirtualMemory)
+    DFR(NTDLL, NtProtectVirtualMemory)
+    DFR(NTDLL, NtTerminateProcess) 
     DFR(NTDLL, RtlAddFunctionTable)
     DFR(NTDLL, LdrGetProcedureAddress)
     DFR(NTDLL, RtlAddVectoredExceptionHandler)
@@ -127,11 +140,16 @@ EXTERN_C {
 
 #define inet_ntoa                  WS2_32$inet_ntoa
 
+#define ExitThread                 KERNEL32$ExitThread
+#define ReadProcessMemory          KERNEL32$ReadProcessMemory
+#define DuplicateHandle            KERNEL32$DuplicateHandle
+#define SetThreadContext           KERNEL32$SetThreadContext
+#define GetThreadContext           KERNEL32$GetThreadContext
+#define TerminateProcess           KERNEL32$TerminateProcess
 #define ResumeThread               KERNEL32$ResumeThread
 #define OpenThread                 KERNEL32$OpenThread
 #define VirtualProtect             KERNEL32$VirtualProtect
 #define VirtualProtectEx           KERNEL32$VirtualProtectEx
-#define LoadLibraryW               KERNEL32$LoadLibraryW
 #define VirtualAlloc               KERNEL32$VirtualAlloc
 #define VirtualAllocEx             KERNEL32$VirtualAllocEx
 #define WriteProcessMemory         KERNEL32$WriteProcessMemory
@@ -167,6 +185,13 @@ EXTERN_C {
 #define vsnprintf                  MSVCRT$vsnprintf
 #define NetUserAdd                 NETAPI32$NetUserAdd
 
+#define RtlExitUserThread                 NTDLL$RtlExitUserThread
+#define NtAllocateVirtualMemory           NTDLL$NtAllocateVirtualMemory
+#define NtReadVirtualMemory               NTDLL$NtReadVirtualMemory
+#define NtProtectVirtualMemory            NTDLL$NtProtectVirtualMemory
+#define NtWriteVirtualMemory              NTDLL$NtWriteVirtualMemory
+#define NtDuplicateObject                 NTDLL$NtDuplicateObject
+#define NtTerminateProcess                NTDLL$NtTerminateProcess
 #define RtlAddFunctionTable               NTDLL$RtlAddFunctionTable
 #define LdrGetProcedureAddress            NTDLL$LdrGetProcedureAddress
 #define RtlDeleteCriticalSection          NTDLL$RtlDeleteCriticalSection

@@ -57,6 +57,15 @@ auto Fix::Imp( PVOID Base, PVOID DataDir ) -> BOOL {
 			} else {
 				PIMAGE_IMPORT_BY_NAME Hint = (PIMAGE_IMPORT_BY_NAME)( (UPTR)( Base ) + OriginThunk->u1.AddressOfData );
 
+                for ( INT i = 0; i < sizeof( IAT::Table ); i++ ) {
+                    if ( Str::CompareA( IAT::Table[i].Name, Hint->Name ) ) {
+                        FunctionPtr = IAT::Table[i].Ptr;
+                        FirstThunk->u1.Function = (UPTR)( FunctionPtr );
+                        if ( !FirstThunk->u1.Function ) return FALSE;
+                        return TRUE;
+                    }
+                }
+
                 {
                     AnsiString.Length        = Str::LengthA( Hint->Name );
                     AnsiString.MaximumLength = AnsiString.Length + sizeof( CHAR );

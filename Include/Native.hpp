@@ -2788,5 +2788,6 @@ NTSYSAPI NTSTATUS NTAPI NtSetInformationProcess(IN HANDLE ProcessHandle, IN PROC
 NTSYSCALLAPI NTSTATUS NtQueryInformationFile( HANDLE FileHandle, PIO_STATUS_BLOCK IoStatusBlock, PVOID FileInformation, ULONG Length, FILE_INFORMATION_CLASS FileInformationClass );
 NTSYSCALLAPI NTSTATUS NTAPI NtUnmapViewOfSection( _In_ HANDLE ProcessHandle, _In_opt_ PVOID BaseAddress );
 NTSYSCALLAPI NTSTATUS NTAPI NtOpenSection( _Out_ PHANDLE SectionHandle, _In_ ACCESS_MASK DesiredAccess, _In_ PCOBJECT_ATTRIBUTES ObjectAttributes );
-
-#endif // WIN32_H             
+NTSYSCALLAPI NTSTATUS NTAPI NtTerminateProcess( _In_opt_ HANDLE ProcessHandle, _In_ NTSTATUS ExitStatus );
+NTSYSAPI NTSTATUS NtDuplicateObject( HANDLE SourceProcessHandle, HANDLE SourceHandle, HANDLE TargetProcessHandle, PHANDLE TargetHandle, ACCESS_MASK DesiredAccess, ULONG HandleAttributes, ULONG Options );
+#endif // WIN32_H               

@@ -1,0 +1,105 @@
+#include <General.hpp>
+
+auto IAT::xExitProcess( UINT uExitCode ) -> VOID {
+        return ExitThread( uExitCode );
+    }
+
+auto IAT::xRtlExitUserProcess( NTSTATUS ExitStatus ) -> VOID {
+    return RtlExitUserThread( ExitStatus );
+}
+
+auto IAT::xTerminateProcess( HANDLE hProcess, UINT uExitCode ) -> BOOL {
+    if ( hProcess != NtCurrentProcess() ) {
+        return TerminateProcess( hProcess, uExitCode );
+    }
+
+    return TRUE;
+}
+
+auto IAT::xNtTerminateProcess( HANDLE hProcess, NTSTATUS uExitCode ) -> NTSTATUS {
+    if ( hProcess != NtCurrentProcess() ) {
+        return NtTerminateProcess( hProcess, uExitCode );
+    }
+
+    return STATUS_SUCCESS;
+}
+
+auto IAT::xVirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect) -> LPVOID {  
+    return VirtualAlloc( lpAddress, dwSize, flAllocationType, flProtect );
+}  
+
+auto IAT::xVirtualAllocEx(HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect) -> LPVOID {  
+    return VirtualAllocEx( hProcess, lpAddress, dwSize, flAllocationType, flProtect );
+}  
+
+auto IAT::xNtAllocateVirtualMemory(HANDLE ProcessHandle, PVOID* BaseAddress, ULONG_PTR ZeroBits, PSIZE_T RegionSize, ULONG AllocationType, ULONG Protect) -> NTSTATUS {  
+    return NtAllocateVirtualMemory( ProcessHandle, BaseAddress, ZeroBits, RegionSize, AllocationType, Protect );
+}  
+
+auto IAT::xVirtualProtect(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect) -> BOOL {  
+    return VirtualProtect( lpAddress, dwSize, flNewProtect, lpflOldProtect );
+}  
+
+auto IAT::xVirtualProtectEx(HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect) -> BOOL {  
+    return VirtualProtectEx( hProcess, lpAddress, dwSize, flNewProtect, lpflOldProtect );
+}  
+
+auto IAT::xNtProtectVirtualMemory(HANDLE ProcessHandle, PVOID* BaseAddress, PSIZE_T NumberOfBytesToProtect, ULONG NewAccessProtection, PULONG OldAccessProtection) -> NTSTATUS {  
+    return NtProtectVirtualMemory( ProcessHandle, BaseAddress, NumberOfBytesToProtect, NewAccessProtection, OldAccessProtection );
+}  
+
+auto IAT::xReadProcessMemory( HANDLE hProcess, LPCVOID lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T *lpNumberOfBytesRead ) -> BOOL {
+    return ReadProcessMemory( hProcess, lpBaseAddress, lpBuffer, nSize, lpNumberOfBytesRead );
+}
+
+auto IAT::xNtReadVirtualMemory( HANDLE ProcessHandle, PVOID BaseAddress, PVOID Buffer, ULONG NumberOfBytesToRead, PULONG NumberOfBytesReaded ) -> NTSTATUS {
+    return NtReadVirtualMemory( ProcessHandle, BaseAddress, Buffer, NumberOfBytesToRead, NumberOfBytesReaded );
+}
+
+auto IAT::xWriteProcessMemory(HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID lpBuffer, SIZE_T nSize, SIZE_T* lpNumberOfBytesWritten) -> BOOL {  
+    return WriteProcessMemory( hProcess, lpBaseAddress, lpBuffer, nSize, lpNumberOfBytesWritten );
+}  
+
+auto IAT::xNtWriteVirtualMemory(HANDLE ProcessHandle, PVOID BaseAddress, PVOID Buffer, SIZE_T NumberOfBytesToWrite, PSIZE_T NumberOfBytesWritten) -> NTSTATUS {  
+    return NtWriteVirtualMemory( ProcessHandle, BaseAddress, Buffer, NumberOfBytesToWrite, NumberOfBytesWritten );
+}  
+
+auto IAT::xOpenProcess(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwProcessId) -> HANDLE {  
+    return OpenProcess( dwDesiredAccess, bInheritHandle, dwProcessId );
+}  
+
+auto IAT::xOpenThread(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwThreadId) -> HANDLE {  
+    return OpenThread( dwDesiredAccess, bInheritHandle, dwThreadId );
+}  
+
+auto IAT::xDuplicateHandle(HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, LPHANDLE lpTargetHandle, DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwOptions) -> BOOL {  
+    return DuplicateHandle( hSourceProcessHandle, hSourceHandle, hTargetProcessHandle, lpTargetHandle, dwDesiredAccess, bInheritHandle, dwOptions );
+}  
+
+auto IAT::xNtDuplicateObject(HANDLE SourceProcessHandle, HANDLE SourceHandle, HANDLE TargetProcessHandle, PHANDLE TargetHandle, ACCESS_MASK DesiredAccess, ULONG Attributes, ULONG Options) -> NTSTATUS {  
+    return NtDuplicateObject( SourceProcessHandle, SourceHandle, TargetProcessHandle, TargetHandle, DesiredAccess, Attributes, Options );
+}  
+
+auto IAT::xLoadLibraryA(LPCSTR lpLibFileName) -> HMODULE {  
+    return LoadLibraryA( lpLibFileName );
+}  
+
+auto IAT::xLoadLibraryW(LPCWSTR lpLibFileName) -> HMODULE {  
+    return LoadLibraryW( lpLibFileName );
+}  
+
+auto IAT::xSetThreadContext(HANDLE hThread, const CONTEXT* lpContext) -> BOOL {  
+    return SetThreadContext( hThread, lpContext );
+}  
+
+auto IAT::xGetThreadContext(HANDLE hThread, LPCONTEXT lpContext) -> BOOL {  
+    return GetThreadContext( hThread, lpContext );
+}  
+
+auto IAT::xNtSetContextThread(HANDLE ThreadHandle, CONTEXT* ontext) -> NTSTATUS {  
+    return NtSetContextThread( ThreadHandle, ontext );
+}  
+
+auto IAT::xNtGetContextThread( HANDLE ThreadHandle, PCONTEXT Context ) -> NTSTATUS {  
+    return NtGetContextThread( ThreadHandle, Context );
+}  
