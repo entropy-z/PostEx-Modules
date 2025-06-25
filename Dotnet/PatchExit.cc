@@ -82,7 +82,6 @@ _BOF_END:
     if ( ExitBstr    ) SysFreeString( ExitBstr );
     if ( SafeEmpty   ) SafeArrayDestroy( SafeEmpty );
 
-    // Clean up VARIANTs
     VariantClear( &VarExitPtr );
     VariantClear( &VarMethodPtr );
     VariantClear( &VarMethodVal );

@@ -103,3 +103,45 @@ auto IAT::xNtSetContextThread(HANDLE ThreadHandle, CONTEXT* ontext) -> NTSTATUS 
 auto IAT::xNtGetContextThread( HANDLE ThreadHandle, PCONTEXT Context ) -> NTSTATUS {  
     return NtGetContextThread( ThreadHandle, Context );
 }  
+
+auto IAT::xGetCommandLineA( VOID ) -> CHAR* {
+    return IAT::CmdAnsi;
+}
+
+auto IAT::xGetCommandLineW( VOID ) -> WCHAR* {
+    return IAT::CmdWide;
+}
+
+auto IAT::__p___argv( VOID )  -> CHAR*** {
+    return &IAT::PoiArgvA;
+}
+
+auto IAT::__p___wargv( VOID ) -> WCHAR*** {
+    return &IAT::PoiArgvW;
+}
+
+auto IAT::__p___argc( VOID )  -> INT* {
+    return &IAT::CmdArgc;
+}
+
+auto IAT::__getmainargs( INT* _Argc, CHAR*** _Argv, CHAR*** _Env, INT _Useless_, PVOID _Useless ) -> INT {
+    *_Argc = IAT::CmdArgc;
+    *_Argv = IAT::PoiArgvA;
+
+    return 0;
+}
+
+auto IAT::__wgetmainargs( INT* _Argc, WCHAR*** _Argv, WCHAR*** _Env, INT _Useless_, PVOID _Useless ) -> INT {
+    *_Argc = IAT::CmdArgc;
+    *_Argv = IAT::PoiArgvW;
+
+    return 0;
+}
+
+FILE *__cdecl __acrt_iob_funcs(unsigned index) {
+    return (FILE*)&(__iob_func()[index]);
+}
+
+#define stdin  (__acrt_iob_funcs(0))
+#define stdout (__acrt_iob_funcs(1))
+#define stderr (__acrt_iob_funcs(2))

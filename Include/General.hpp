@@ -20,6 +20,11 @@ enum Write {
     Apc
 };
 
+enum Alloc {
+    Default,
+    Drip
+};
+
 #define HW_ALL_THREADS 0x25
 
 enum Dr {
@@ -276,8 +281,8 @@ namespace IAT {
     auto __p___argv( VOID )  -> CHAR***;
     auto __p___wargv( VOID ) -> WCHAR***;
     auto __p___argc( VOID )  -> INT*;
-    auto __getmainargs( INT* _Argc, CHAR*** _Env, INT _Useless_, PVOID _Useless ) -> INT;
-    auto __wgetmainargs( INT* _Argc, WCHAR*** _Env, INT _Useless_, PVOID _Useless ) -> INT;
+    auto __getmainargs( INT* _Argc, CHAR*** _Argv, CHAR*** _Env, INT _Useless_, PVOID _Useless ) -> INT;
+    auto __wgetmainargs( INT* _Argc, WCHAR*** _Argv, WCHAR*** _Env, INT _Useless_, PVOID _Useless ) -> INT;
 
     struct {
         PVOID Ptr;

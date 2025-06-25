@@ -5,6 +5,7 @@
 #include <iphlpapi.h>
 #include <stdio.h>
 #include <lmaccess.h>
+#include <io.h>
 #include <lmerr.h>
 #include <wsmandisp.h>
 #include <CLR.hpp>
@@ -15,9 +16,18 @@
 #include <combaseapi.h>
 #include <Native.hpp>
 #include <ntstatus.h>
+#include <inttypes.h>
+#include <fcntl.h>
+#include <corecrt.h>
 
 EXTERN_C DECLSPEC_IMPORT INT WINAPI DNSAPI$DnsGetCacheDataTable(PVOID Data);
 EXTERN_C {
+    DFR(KERNEL32, ReadFile)
+    DFR(KERNEL32, PeekNamedPipe)
+    DFR(KERNEL32, TerminateThread)
+    DFR(KERNEL32, WaitForSingleObject)
+    DFR(KERNEL32, QueryPerformanceFrequency)
+    DFR(KERNEL32, QueryPerformanceCounter)
     DFR(KERNEL32, ExitThread)
     DFR(KERNEL32, ReadProcessMemory)
     DFR(KERNEL32, DuplicateHandle)
@@ -49,7 +59,12 @@ EXTERN_C {
     DFR(KERNEL32, CloseHandle)
     DFR(KERNEL32, SetFileInformationByHandle)
     DFR(KERNEL32, TerminateProcess)
-    
+    DFR(KERNEL32, GetConsoleWindow)
+    DFR(KERNEL32, CreatePipe)
+    DFR(KERNEL32, AllocConsole)
+    DFR(KERNEL32, GetStdHandle)
+    DFR(KERNEL32, SetStdHandle)
+
     DFR(IPHLPAPI, GetNetworkParams)
     DFR(IPHLPAPI, GetAdaptersInfo)
     DFR(IPHLPAPI, GetIpForwardTable)
@@ -59,6 +74,10 @@ EXTERN_C {
 
     DFR(WS2_32, inet_ntoa)
     
+    DFR(MSVCRT, freopen_s)
+    DFR(MSVCRT, _open_osfhandle)
+    DFR(MSVCRT, _fileno)
+    DFR(MSVCRT, _dup2)
     DFR(MSVCRT, printf)
     DFR(MSVCRT, wprintf)
     DFR(MSVCRT, wcslen)
@@ -122,6 +141,9 @@ EXTERN_C {
 
     DFR(USER32, GetDC)
     DFR(USER32, GetSystemMetrics)
+    DFR(USER32, ShowWindow)
+
+    DFR(SHELL32, CommandLineToArgvW)
 
     DFR(GDI32, BitBlt)
     DFR(GDI32, SelectObject)
@@ -140,6 +162,17 @@ EXTERN_C {
 
 #define inet_ntoa                  WS2_32$inet_ntoa
 
+#define GetStdHandle               KERNEL32$GetStdHandle
+#define SetStdHandle               KERNEL32$SetStdHandle
+#define AllocConsole               KERNEL32$AllocConsole
+#define GetConsoleWindow           KERNEL32$GetConsoleWindow
+#define CreatePipe                 KERNEL32$CreatePipe
+#define ReadFile                   KERNEL32$ReadFile
+#define PeekNamedPipe              KERNEL32$PeekNamedPipe
+#define TerminateThread            KERNEL32$TerminateThread
+#define WaitForSingleObject        KERNEL32$WaitForSingleObject
+#define QueryPerformanceFrequency  KERNEL32$QueryPerformanceFrequency
+#define QueryPerformanceCounter    KERNEL32$QueryPerformanceCounter
 #define ExitThread                 KERNEL32$ExitThread
 #define ReadProcessMemory          KERNEL32$ReadProcessMemory
 #define DuplicateHandle            KERNEL32$DuplicateHandle
@@ -178,6 +211,10 @@ EXTERN_C {
 #define RegOpenKeyExA              ADVAPI32$RegOpenKeyExA
 #define RegSetValueExA             ADVAPI32$RegSetValueExA
 
+#define freopen_s                  MSVCRT$freopen_s
+#define _open_osfhandle            MSVCRT$_open_osfhandle
+#define _fileno                    MSVCRT$_fileno
+#define _dup2                      MSVCRT$_dup2
 #define wcscmp                     MSVCRT$wcscmp
 #define printf                     MSVCRT$printf
 #define wprintf                    MSVCRT$wprintf
@@ -213,8 +250,11 @@ EXTERN_C {
 #define NtSetInformationProcess           NTDLL$NtSetInformationProcess
 #define RtlCreateTimer                    NTDLL$RtlCreateTimer
 
+#define CommandLineToArgvW         SHELL32$CommandLineToArgvW
+
 #define GetDC                      USER32$GetDC
 #define GetSystemMetrics           USER32$GetSystemMetrics
+#define ShowWindow                 USER32$ShowWindow
 
 #define BitBlt                     GDI32$BitBlt
 #define SelectObject               GDI32$SelectObject

