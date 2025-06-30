@@ -6,8 +6,8 @@
 
 #define NtCurrentThreadID HandleToUlong( NtCurrentTeb()->ClientId.UniqueThread )
 
-#define DEFB( x )  ( * ( BYTE* )  ( x ) )
-#define DEF( x )   ( * ( PVOID* )  ( x ) )
+#define DEF( x )   ( * ( PVOID*  ) ( x ) )
+#define DEFB( x )  ( * ( BYTE*   ) ( x ) )
 #define DEF08( x ) ( * ( UINT8*  ) ( x ) )
 #define DEF16( x ) ( * ( UINT16* ) ( x ) )
 #define DEF32( x ) ( * ( UINT32* ) ( x ) )

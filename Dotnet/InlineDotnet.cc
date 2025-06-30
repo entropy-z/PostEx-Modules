@@ -301,26 +301,14 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
     WCHAR* wVersion    = Mem::Alloc<WCHAR*>( VersionL );
     WCHAR* wAppDomName = Mem::Alloc<WCHAR*>( AppDomainL );
 
-    DbgPrint("memory allocated %p %p %p", wArguments, wVersion, wAppDomName);
-
     Arguments = Arguments[0] ? Arguments : nullptr;
 
     Str::CharToWChar( wArguments, Arguments, ArgumentsL );
-    DbgPrint("Arguments: %S\n", wArguments);
     Str::CharToWChar( wVersion, FmVersion, VersionL );
-    DbgPrint("Version: %S\n", wVersion);
     Str::CharToWChar( wAppDomName, AppDomain, AppDomainL );
 
     Dotnet::Bypass     = Bypass;
     Dotnet::ExitBypass = PatchExit;
-
-    DbgPrint("Version: %S\n", wVersion);
-    DbgPrint("app domain: %S\n", wAppDomName);
-    DbgPrint("Arguments: %S\n", wArguments);
-    DbgPrint("Buffer @ %p %d\n", Buffer, Length);
-    DbgPrint("bypass %X\n", Bypass);
-    DbgPrint("patch exit: %s\n", Bypass ? "true" : "false");
-    DbgPrint("Keep: %s\n", Keep ? "true" : "false");
 
     Dotnet::Inline( Buffer, Length, wArguments, wAppDomName, wVersion, Keep );
 }
