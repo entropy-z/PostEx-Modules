@@ -48,16 +48,11 @@ auto Dotnet::Inline(
 
     SECURITY_ATTRIBUTES SecAttr = { 0 };
 
-    DbgPrint("clr 0\n");
-
     HResult = CLRCreateInstance( 
         xCLSID.CLRMetaHost, xIID.ICLRMetaHost, (PVOID*)&MetaHost 
     );
     if ( HResult || !MetaHost ) goto _BOF_END;
 
-    DbgPrint("clr 3\n");
-
-    DbgPrint("d Version %S\n", Version);
     //
     //  get the last version if parameters is not passed
     //
@@ -72,19 +67,13 @@ auto Dotnet::Inline(
                 
                 if ( SUCCEEDED( RtmInfo->GetVersionString( FmVersion, &FmBuffLen ) ) ) {
                     Version = FmVersion;
-                    DbgPrint("c Version %S\n", Version);
-                    DbgPrint("b Version %S\n", FmVersion);
                 }
             }
         }
     }
 
-    DbgPrint("a Version %S\n", Version);
-
     HResult = MetaHost->GetRuntime( Version, xIID.ICLRRuntimeInfo, (PVOID*)&RtmInfo );
     if ( FAILED( HResult ) ) goto _BOF_END;
-
-    DbgPrint("clr 54\n");
 
     //
     // check if runtime is loadable
@@ -92,8 +81,6 @@ auto Dotnet::Inline(
     HResult = RtmInfo->IsLoadable( &IsLoadable );
     if ( HResult || !IsLoadable ) goto _BOF_END;
 
-
-    DbgPrint("clr 1\n");
     //
     // load clr version
     //
@@ -102,15 +89,11 @@ auto Dotnet::Inline(
     );
     if ( FAILED( HResult ) ) goto _BOF_END;
 
-    DbgPrint("clr 1\n");
-
     //
     // start the clr loaded
     //
     HResult = RtmHost->Start();
     if ( FAILED( HResult ) ) goto _BOF_END;
-
-    DbgPrint("clr started\n");
 
     //
     // create the app domain
