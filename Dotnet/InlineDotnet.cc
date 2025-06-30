@@ -285,14 +285,6 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
     BOOL  PatchExit = BeaconDataInt( &Parser );
     BOOL  Keep      = BeaconDataInt( &Parser );
 
-    DbgPrint("Version: %s\n", FmVersion);
-    DbgPrint("Arguments: %s\n", Arguments);
-    DbgPrint("app domain: %s\n", AppDomain);
-    DbgPrint("Buffer @ %p %d\n", Buffer, Length);
-    DbgPrint("bypass %X\n", Bypass);
-    DbgPrint("patch exit: %s\n", Bypass ? "true" : "false");
-    DbgPrint("Keep: %s\n", Keep ? "true" : "false");
-
     ULONG AppDomainL = Str::LengthA( AppDomain ) * sizeof( WCHAR );
     ULONG VersionL   = Str::LengthA( FmVersion ) * sizeof( WCHAR );
     ULONG ArgumentsL = Str::LengthA( Arguments ) * sizeof( WCHAR );
