@@ -1,6 +1,7 @@
 #pragma once
 #include <windows.h>
 
+#define CALLBACK_NO_PRE_MSG  0x4f
 #define CALLBACK_OUTPUT      0x0
 #define CALLBACK_OUTPUT_OEM  0x1e
 #define CALLBACK_ERROR       0x0d
@@ -76,9 +77,9 @@ EXTERN_C {
     DECLSPEC_IMPORT VOID   BeaconDataStoreProtectItem(SIZE_T Index);
     DECLSPEC_IMPORT VOID   BeaconDataStoreUnprotectItem(SIZE_T Index);
     DECLSPEC_IMPORT SIZE_T BeaconDataStoreMaxEntries();
-
     DECLSPEC_IMPORT PVOID  BeaconVirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
     DECLSPEC_IMPORT PVOID  BeaconVirtualAllocEx(HANDLE processHandle, LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
+    DECLSPEC_IMPORT PVOID  BeaconDripAlloc(HANDLE processHandle, LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
     DECLSPEC_IMPORT BOOL   BeaconVirtualProtect(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect);
     DECLSPEC_IMPORT BOOL   BeaconVirtualProtectEx(HANDLE processHandle, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect);
     DECLSPEC_IMPORT BOOL   BeaconVirtualFree(LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType);

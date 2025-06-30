@@ -8,10 +8,10 @@
 typedef ULONG       ERROR_CODE;
 typedef UINT_PTR    UPTR;
 
-#define KhGetError       NtCurrentTeb()->LastErrorValue
+#define KhGetErrorMsg       NtCurrentTeb()->LastErrorValue
 #define KhSetError( x )  NtCurrentTeb()->LastErrorValue = x
-#define KhRetError( x )  KhSetError( x ); return KhGetError
-#define KhRetSuccess     KhSetError( ERROR_SUCCESS ); return KhGetError
+#define KhRetError( x )  KhSetError( x ); return KhGetErrorMsg
+#define KhRetSuccess     KhSetError( ERROR_SUCCESS ); return KhGetErrorMsg
 
 typedef struct {
     ULONG_PTR Attribute;

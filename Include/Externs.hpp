@@ -19,9 +19,14 @@
 #include <inttypes.h>
 #include <fcntl.h>
 #include <corecrt.h>
+#include <objbase.h>
+#include <activscp.h>
 
 EXTERN_C DECLSPEC_IMPORT INT WINAPI DNSAPI$DnsGetCacheDataTable(PVOID Data);
 EXTERN_C {
+    DFR(KERNEL32, LocalFree)
+    DFR(KERNEL32, FormatMessageA)
+    DFR(KERNEL32, FreeConsole)
     DFR(KERNEL32, ReadFile)
     DFR(KERNEL32, PeekNamedPipe)
     DFR(KERNEL32, TerminateThread)
@@ -64,6 +69,9 @@ EXTERN_C {
     DFR(KERNEL32, AllocConsole)
     DFR(KERNEL32, GetStdHandle)
     DFR(KERNEL32, SetStdHandle)
+    DFR(KERNEL32, VirtualFree)
+    DFR(KERNEL32, SetHandleInformation)
+    DFR(KERNEL32, SetNamedPipeHandleState)
 
     DFR(IPHLPAPI, GetNetworkParams)
     DFR(IPHLPAPI, GetAdaptersInfo)
@@ -74,15 +82,20 @@ EXTERN_C {
 
     DFR(WS2_32, inet_ntoa)
     
+    DFR(MSVCRT, fclose)
     DFR(MSVCRT, freopen_s)
     DFR(MSVCRT, _open_osfhandle)
     DFR(MSVCRT, _fileno)
     DFR(MSVCRT, _dup2)
+    DFR(MSVCRT, _dup)
     DFR(MSVCRT, printf)
     DFR(MSVCRT, wprintf)
     DFR(MSVCRT, wcslen)
     DFR(MSVCRT, vsnprintf)
     DFR(MSVCRT, wcscmp)
+    DFR(MSVCRT, __iob_func)
+    DFR(MSVCRT, vsprintf)
+    DFR(MSVCRT, _fdopen)
 
     DFR(NETAPI32, NetUserAdd)
 
@@ -121,6 +134,7 @@ EXTERN_C {
     DFR(NTDLL, NtSetInformationProcess)
     DFR(NTDLL, NtQueryInformationProcess)
     DFR(NTDLL, RtlCreateTimer)
+    DFR(NTDLL, DbgPrint)
 
     DFR(OLE32, CoCreateInstance)
     DFR(OLE32, CoInitializeEx)
@@ -128,16 +142,19 @@ EXTERN_C {
     DFR(OLE32, CLSIDFromString)
     DFR(OLE32, IIDFromString)
     DFR(OLE32, CoSetProxyBlanket)
-    DFR(OLE32, VariantInit)
-    DFR(OLE32, VariantClear)
-    DFR(OLE32, SafeArrayCreateVector)
-    DFR(OLE32, SafeArrayDestroy)
-    DFR(OLE32, SafeArrayPutElement)
-    DFR(OLE32, SafeArrayAccessData)
-    DFR(OLE32, SafeArrayGetLBound)
-    DFR(OLE32, SafeArrayGetUBound)
-    DFR(OLE32, SysFreeString)
-    DFR(OLE32, SysAllocString)
+
+    DFR(OLEAUT32, VariantInit)
+    DFR(OLEAUT32, VariantClear)
+    DFR(OLEAUT32, SafeArrayCreateVector)
+    DFR(OLEAUT32, SafeArrayCreate)
+    DFR(OLEAUT32, SafeArrayDestroy)
+    DFR(OLEAUT32, SafeArrayPutElement)
+    DFR(OLEAUT32, SafeArrayAccessData)
+    DFR(OLEAUT32, SafeArrayGetLBound)
+    DFR(OLEAUT32, SafeArrayGetUBound)
+    DFR(OLEAUT32, SysFreeString)
+    DFR(OLEAUT32, SysAllocString)
+    DFR(OLEAUT32, SafeArrayCreate)
 
     DFR(USER32, GetDC)
     DFR(USER32, GetSystemMetrics)
@@ -162,6 +179,10 @@ EXTERN_C {
 
 #define inet_ntoa                  WS2_32$inet_ntoa
 
+#define SetNamedPipeHandleState    KERNEL32$SetNamedPipeHandleState
+#define LocalFree                  KERNEL32$LocalFree
+#define FormatMessageA             KERNEL32$FormatMessageA
+#define FreeConsole                KERNEL32$FreeConsole
 #define GetStdHandle               KERNEL32$GetStdHandle
 #define SetStdHandle               KERNEL32$SetStdHandle
 #define AllocConsole               KERNEL32$AllocConsole
@@ -203,6 +224,8 @@ EXTERN_C {
 #define QueryFullProcessImageNameA KERNEL32$QueryFullProcessImageNameA
 #define CloseHandle                KERNEL32$CloseHandle
 #define SetFileInformationByHandle KERNEL32$SetFileInformationByHandle
+#define VirtualFree                KERNEL32$VirtualFree
+#define SetHandleInformation       KERNEL32$SetHandleInformation
 
 #define OpenSCManagerA             ADVAPI32$OpenSCManagerA   
 #define CreateServiceA             ADVAPI32$CreateServiceA
@@ -211,15 +234,21 @@ EXTERN_C {
 #define RegOpenKeyExA              ADVAPI32$RegOpenKeyExA
 #define RegSetValueExA             ADVAPI32$RegSetValueExA
 
+#define fclose                     MSVCRT$fclose
+#define _fdopen                    MSVCRT$_fdopen
 #define freopen_s                  MSVCRT$freopen_s
 #define _open_osfhandle            MSVCRT$_open_osfhandle
 #define _fileno                    MSVCRT$_fileno
 #define _dup2                      MSVCRT$_dup2
+#define _dup                       MSVCRT$_dup
 #define wcscmp                     MSVCRT$wcscmp
 #define printf                     MSVCRT$printf
 #define wprintf                    MSVCRT$wprintf
 #define wcslen                     MSVCRT$wcslen
 #define vsnprintf                  MSVCRT$vsnprintf
+#define __iob_func                 MSVCRT$__iob_func
+#define vsprintf                   MSVCRT$vsprintf
+
 #define NetUserAdd                 NETAPI32$NetUserAdd
 
 #define RtlExitUserThread                 NTDLL$RtlExitUserThread
@@ -249,6 +278,7 @@ EXTERN_C {
 #define NtQueryInformationProcess         NTDLL$NtQueryInformationProcess
 #define NtSetInformationProcess           NTDLL$NtSetInformationProcess
 #define RtlCreateTimer                    NTDLL$RtlCreateTimer
+#define DbgPrint                          NTDLL$DbgPrint
 
 #define CommandLineToArgvW         SHELL32$CommandLineToArgvW
 
@@ -268,15 +298,17 @@ EXTERN_C {
 #define CLSIDFromString            OLE32$CLSIDFromString
 #define IIDFromString              OLE32$IIDFromString
 #define CoSetProxyBlanket          OLE32$CoSetProxyBlanket
-#define VariantInit                OLE32$VariantInit
-#define VariantClear               OLE32$VariantClear
-#define SafeArrayCreateVector      OLE32$SafeArrayCreateVector
-#define SafeArrayDestroy           OLE32$SafeArrayDestroy
-#define SafeArrayPutElement        OLE32$SafeArrayPutElement
-#define SafeArrayAccessData        OLE32$SafeArrayAccessData
-#define SafeArrayGetLBound         OLE32$SafeArrayGetLBound
-#define SafeArrayGetUBound         OLE32$SafeArrayGetUBound
-#define SysFreeString              OLE32$SysFreeString
-#define SysAllocString             OLE32$SysAllocString
+
+#define VariantInit                OLEAUT32$VariantInit
+#define VariantClear               OLEAUT32$VariantClear
+#define SafeArrayCreateVector      OLEAUT32$SafeArrayCreateVector
+#define SafeArrayDestroy           OLEAUT32$SafeArrayDestroy
+#define SafeArrayPutElement        OLEAUT32$SafeArrayPutElement
+#define SafeArrayAccessData        OLEAUT32$SafeArrayAccessData
+#define SafeArrayGetLBound         OLEAUT32$SafeArrayGetLBound
+#define SafeArrayGetUBound         OLEAUT32$SafeArrayGetUBound
+#define SysFreeString              OLEAUT32$SysFreeString
+#define SysAllocString             OLEAUT32$SysAllocString
+#define SafeArrayCreate            OLEAUT32$SafeArrayCreate
 
 #define CLRCreateInstance          MSCOREE$CLRCreateInstance

