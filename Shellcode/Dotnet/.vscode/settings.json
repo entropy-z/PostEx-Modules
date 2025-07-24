@@ -1,0 +1,12 @@
+{
+    "C_Cpp.default.compilerPath": "C:/msys64/ucrt64/bin/g++.exe",
+    "C_Cpp.codeAnalysis.runAutomatically": true,
+    "C_Cpp.codeAnalysis.hover.enable": true,
+    "clangd.inlayHints.showParameterNames": true,
+    "files.associations": {
+        "bit": "cpp",
+        "compare": "cpp",
+        "limits": "cpp",
+        "new": "cpp"
+    }
+}
