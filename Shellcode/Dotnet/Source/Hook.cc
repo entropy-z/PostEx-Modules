@@ -152,7 +152,7 @@ auto DECLFN Hwbp::PatchExitDetour(PCONTEXT Ctx) -> VOID {
     Ctx->Rsp += sizeof(PVOID);
 } 
 
-auto DECLFN Hwbp::DotnetInit(INT32 BypassFlags) -> BOOL {
+auto DECLFN Hwbp::DotnetInit( INT32 BypassFlags ) -> BOOL {
     G_INSTANCE
 
     if (!Hwbp::Init()) return FALSE;

